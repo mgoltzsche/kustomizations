@@ -1,0 +1,21 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: registry-tls
+  namespace: docker-registry
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  tls:
+  - hosts:
+      - docker.example.org
+  - secretName: docker-registry-tls
+  rules:
+  - host: docker.example.org
+    http:
+      paths:
+      - backend:
+          serviceName: docker-registry
+          servicePort: 5000
+        path: /

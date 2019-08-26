@@ -1,0 +1,17 @@
+resources:
+  - registry-test-job.yaml
+
+configMapGenerator:
+- name: registry-nginx-conf
+  namespace: docker-registry
+  files:
+    - nginx.conf
+
+vars:
+- name: REGISTRY_SERVICE
+  objref:
+    kind: Service
+    name: docker-registry
+    apiVersion: v1
+  fieldref:
+    fieldpath: metadata.name

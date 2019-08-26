@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: registry-pull-test
+  namespace: docker-registry
+spec:
+  template:
+    spec:
+      containers:
+      - name: registry-pull-test
+        image: bitnami/kubectl:1.15
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+            POD_NAME=registry-pull-test-$(date +%Y%m%d%H%M%S)
+            kubectl apply -n "$SERVICE_NAMESPACE" -f - <<-EOF
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                name: $POD_NAME
+                namespace: $SERVICE_NAMESPACE
+              spec:
+                containers:
+                - name: registry-pull-test
+                  image: ${SERVICE_NAME}.${SERVICE_NAMESPACE}.svc/registry-test:latest
+                imagePullSecrets:
+                - name: docker-registry-pull
+            EOF
+            STATUS=0
+            kubectl wait --for condition=ready -n "$SERVICE_NAMESPACE" pod/$POD_NAME --timeout 60s || STATUS=1
+            kubectl delete -n "$SERVICE_NAMESPACE" pod $POD_NAME
+            exit $STATUS
+        env:
+        - name: SERVICE_NAMESPACE
+          value: $(SERVICE_NAMESPACE)
+        - name: SERVICE_NAME
+          value: $(SERVICE_NAME)
+      restartPolicy: Never
+      automountServiceAccountToken: true
+      serviceAccountName: registry-test

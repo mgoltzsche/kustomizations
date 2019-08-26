@@ -1,0 +1,32 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: registry-test
+  namespace: docker-registry
+  labels:
+    app: docker-registry
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: registry-test
+  namespace: docker-registry
+rules:
+- apiGroups: [""]
+  resources: ["secrets", "pods"]
+  verbs: ["list", "get", "create", "update", "put", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: registry-test
+  namespace: docker-registry
+subjects:
+- kind: ServiceAccount
+  name: registry-test
+  apiGroup: ""
+roleRef:
+  kind: Role
+  name: registry-test
+  apiGroup: rbac.authorization.k8s.io

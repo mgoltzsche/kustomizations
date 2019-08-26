@@ -1,0 +1,56 @@
+# This daemonset ensures that the registry's (public) name is mapped
+# to its service's ClusterIP on each node.
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: registry-clusterip-injector-daemonset
+  namespace: docker-registry
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        run-once-daemonset: registry-clusterip-injector-daemonset
+    spec:
+      containers:
+      - name: registry-clusterip-injector-daemonset
+        image: alpine:3.10
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+            set -eo pipefail
+            [ "$SERVICE_NAME" ] || (echo SERVICE_NAME env var is empty >&2; false)
+            addHostsEntry() {
+              SVC_NAME="$1"
+              FQN="$2"
+              SVC_IP="$(getent hosts "$SVC_NAME" | awk '{ print $1 }')" || (echo "Cannot resolve IP of service '$SVC_NAME'" >&2; false)
+              FQN_ESCAPED="$(echo "$FQN" | sed 's/\./\\./g')"
+              HOSTS_FILE=/host/etc/hosts
+              HOSTS="$(sed -Ee "s/\s+$FQN_ESCAPED(\s+|\$)/ /g" -Ee '/^[^\s]+\s*$/d' -e "\$a$SVC_IP $FQN" $HOSTS_FILE)"
+              echo "$HOSTS" > ${HOSTS_FILE}.tmp
+              mv ${HOSTS_FILE}.tmp $HOSTS_FILE || echo "$HOSTS" > $HOSTS_FILE # workaround for containerized k8s where /etc/hosts is mounted
+              rm -f ${HOSTS_FILE}.tmp
+              echo "Node's /etc/hosts updated with $FQN pointing to $SVC_IP"
+            }
+            SERVICE_NAME="${SERVICE_NAME}.${SERVICE_NAMESPACE}.svc"
+            addHostsEntry "$SERVICE_NAME" "$COMMON_NAME"
+            addHostsEntry "$SERVICE_NAME" "$SERVICE_NAME"
+            while true; do sleep 86400; done
+        env:
+        - name: SERVICE_NAMESPACE
+          value: $(SERVICE_NAMESPACE)
+        - name: SERVICE_NAME
+          value: $(SERVICE_NAME)
+        - name: COMMON_NAME
+          value: $(COMMON_NAME)
+        volumeMounts:
+        - name: etc-hosts
+          mountPath: /host/etc
+          readOnly: false
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: etc-hosts
+        hostPath:
+          path: /etc

@@ -1,0 +1,68 @@
+# Installs the CA cert on each node.
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: ca-cert-injector-daemonset
+  namespace: cert-manager
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        run-once-daemonset: ca-cert-injector-daemonset
+    spec:
+      containers:
+      - name: ca-cert-injector-daemonset
+        image: governmentpaas/curl-ssl
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+            set -exo pipefail
+            CERT_FILE=custom-ca-cert-$(date +%Y%m%d%H%M%S).pem
+            mkdir -p /etc/ssl/custom-ca
+            cp -f /ca-cert/ca.crt /etc/ssl/custom-ca/$CERT_FILE
+            [ ! -d /etc/ssl/certs ] || (
+              ln -sf /etc/ssl/custom-ca/$CERT_FILE /etc/ssl/certs/ca-cert-ca.pem
+              c_rehash /etc/ssl/certs
+            )
+            # when setup with kubeadm (see https://kubernetes.io/docs/setup/best-practices/certificates/#where-certificates-are-stored)
+            [ ! -d /etc/kubernetes/pki ] || (
+              ln -sf /etc/ssl/custom-ca/$CERT_FILE /etc/kubernetes/pki/ca-cert-ca.pem
+              c_rehash /etc/kubernetes/pki
+            )
+            sleep 3
+            # Remove old certificates
+            for OLDCERT in $(ls /etc/ssl/custom-ca | grep -E 'custom-ca-cert-[0-9]+\.pem' | grep -v "$CERT_FILE"); do
+              rm /etc/ssl/custom-ca/$OLDCERT
+            done
+            while true; do sleep 86400; done &
+            wait
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "16Mi"
+          limits:
+            cpu: "300m"
+            memory: "64Mi"
+        volumeMounts:
+        - name: ca-cert
+          mountPath: /ca-cert
+        - name: host-etc
+          mountPath: /etc
+          readOnly: false
+        - name: host-ca-certs
+          mountPath: /usr/local/share/ca-certificates
+          readOnly: false
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: ca-cert
+        secret:
+          secretName: cluster-ca-key-pair
+      - name: host-etc
+        hostPath:
+          path: /etc
+      - name: host-ca-certs
+        hostPath:
+          path: /usr/local/share/ca-certificates
