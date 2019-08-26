@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: registry-cert-issuer
+  namespace: docker-registry
+spec:
+  template:
+    spec:
+      containers:
+      - name: registry-cert-issuer
+        image: bitnami/kubectl:1.15
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+            set -ex
+            openssl genrsa -out /tmp/tls.key 2048
+            openssl req -new -key /tmp/tls.key -out /tmp/tls.csr -sha512 -days 90 -subj "/CN=${SERVICE_NAME}.${SERVICE_NAMESPACE}.svc"
+            kubectl delete csr ${SERVICE_NAME}.${SERVICE_NAMESPACE} --ignore-not-found
+            kubectl apply --wait -f - <<-EOF
+              apiVersion: certificates.k8s.io/v1beta1
+              kind: CertificateSigningRequest
+              metadata:
+                name: ${SERVICE_NAME}.${SERVICE_NAMESPACE}
+              spec:
+                groups:
+                - system:authenticated
+                - registry
+                request: $(cat /tmp/tls.csr | base64 | tr -d '\n')
+                usages:
+                - digital signature
+                - key encipherment
+                - server auth
+            EOF
+            kubectl certificate approve ${SERVICE_NAME}.${SERVICE_NAMESPACE}
+            kubectl get csr docker-registry.docker-registry -o jsonpath='{.status.certificate}' | base64 -d > /tmp/tls.crt
+            [ "$(openssl rsa -modulus -noout -in /tmp/tls.key | openssl md5)" = "$(openssl x509 -modulus -noout -in /tmp/tls.crt | openssl md5)" ] \
+              || (echo priv key does not match pub key >&2; false)
+            #openssl verify -verbose -CAfile /run/secrets/kubernetes.io/serviceaccount/ca.crt /tmp/tls.crt
+            #kubectl -n "$SERVICE_NAMESPACE" create secret tls docker-registry-tls --cert=/tmp/tls.crt --key=/tmp/tls.key
+            kubectl apply -f - <<-EOF
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: docker-registry-tls
+                namespace: $SERVICE_NAMESPACE
+              type: kubernetes.io/tls
+              data:
+                tls.crt: $(cat /tmp/tls.crt | base64 | tr -d '\n')
+                tls.key: $(cat /tmp/tls.key | base64 | tr -d '\n')
+            EOF
+        env:
+        - name: SERVICE_NAMESPACE
+          value: $(SERVICE_NAMESPACE)
+        - name: SERVICE_NAME
+          value: $(SERVICE_NAME)
+      restartPolicy: Never
+      automountServiceAccountToken: true
+      serviceAccountName: registry-cert-issuer

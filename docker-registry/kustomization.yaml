@@ -11,8 +11,11 @@ resources:
   - deployment.yaml
   - service.yaml
   - registry-clusterip-injector-daemonset.yaml
+  #- registry-cert-injector-daemonset.yaml
   - test/rbac.yaml
   - test/registry-push-test.yaml
+  - registry-cert-issuer.yaml
+  - registry-cert-issuer-rbac.yaml
   - test/registry-pull-test.yaml
   #- ingress.yaml
 
