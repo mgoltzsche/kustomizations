@@ -4,7 +4,7 @@ metadata:
   name: docker-registry-cert
   namespace: docker-registry
 spec:
-  secretName: docker-registry-tls-ignored
+  secretName: docker-registry-tls
   duration: 2160h # 90d
   renewBefore: 360h # 15d
   commonName: registry.example.org

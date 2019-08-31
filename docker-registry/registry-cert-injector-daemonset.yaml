@@ -12,6 +12,7 @@ spec:
       labels:
         run-once-daemonset: registry-cert-injector-daemonset
     spec:
+      hostPID: true
       containers:
       - name: registry-cert-injector-daemonset
         image: governmentpaas/curl-ssl
@@ -20,26 +21,56 @@ spec:
         args:
         - |
             set -exo pipefail
-            CERT_DIR=/etc/ssl/registry-cert
-            mkdir -p $CERT_DIR
-            CERT_FILE=$CERT_DIR/registry-cert-$(date +%Y%m%d%H%M%S).pem
-            cp -f /registry-cert/tls.crt $CERT_FILE
-            [ ! -d /etc/ssl/certs ] || (
-              ln -sf $CERT_FILE /etc/ssl/certs/registry-cert.pem
-              c_rehash /etc/ssl/certs
-            )
-            # when setup with kubeadm (see https://kubernetes.io/docs/setup/best-practices/certificates/#where-certificates-are-stored)
-            [ ! -d /etc/kubernetes/pki ] || (
-              ln -sf $CERT_FILE /etc/kubernetes/pki/registry-cert.pem
-              c_rehash /etc/kubernetes/pki
-            )
-            sleep 3
-            # Remove old certificates
-            for OLDCERT in $(ls $CERT_DIR | grep -E 'registry-cert-[0-9]+\.pem' | sort -r | tail -n +3); do
-              rm -f $CERT_DIR/$OLDCERT
-            done
+            copyCaCert() {
+              CERT_DIR=$1
+              mkdir -p "$CERT_DIR"
+              CERT_FILE=$CERT_DIR/registry-ca-$(md5sum /ca-cert/ca.crt | cut -d' ' -f1).crt
+              if [ ! -f $CERT_FILE ]; then
+                cp /ca-cert/ca.crt $CERT_DIR/.tmp-registry-ca-cert
+                mv $CERT_DIR/.tmp-registry-ca-cert $CERT_FILE
+                for OLDCERT in $(ls $CERT_DIR | grep -E 'registry-ca-[0-9]+\.crt' | sort -r | tail -n +2); do
+                  rm -f $CERT_DIR/$OLDCERT
+                done
+              fi
+            }
+            rm -rf /etc/ssl/certs /usr/local/share/ca-certificates
+            mkdir -p /etc/ssl/certs /usr/local/share/ca-certificates
+            copyCaCert /host/usr/local/share/ca-certificates
+            mount --bind /host/etc/ssl/certs /etc/ssl/certs
+            STATUS=0
+            (mount --bind /host/usr/local/share/ca-certificates /usr/local/share/ca-certificates
+            update-ca-certificates
+            c_rehash) || STATUS=1
+            umount /etc/ssl/certs
+            umount /usr/local/share/ca-certificates
+            [ "$STATUS" -eq 0 ] || exit 1
+            #[ ! -d /etc/kubernetes/pki ] || cp -f /ca-cert/ca.crt /etc/kubernetes/pki/registry-ca.crt
+            if [ -d /host/etc/pki/ca-trust/source/anchors ]; then
+              # for RHEL/fedora/centos:
+              copyCaCert /host/etc/pki/ca-trust/source/anchors
+              chroot /host /usr/bin/update-ca-trust
+            fi
+
+            CRIO_PID="$(ps aux | grep -Em1 ' /usr/local/bin/crio( |$)' | grep -Eo '^\s*[0-9]+' | grep -Eo '[0-9]+')" || true
+            if [ "$CRIO_PID" ]; then
+              # Force CRI-O reload if crio process found to pick up new CA cert
+              kill -1 "$CRIO_PID" || (echo ERROR: failed to reload crio >&2; false)
+            else
+              echo 'WARN: Could not find crio process.' >&2
+              echo '  You may need to restart the container engine on each node' >&2
+              echo '  manually to ensure the new CA certificate is registered.' >&2
+            fi
+
             (while true; do sleep 86400; done) &
+            SLEEP_PID=$!
+            terminate() {
+              kill -9 $SLEEP_PID
+              exit 0
+            }
+            trap terminate 1 2 15
             wait
+        securityContext:
+          privileged: true
         resources:
           requests:
             cpu: "10m"
@@ -48,16 +79,16 @@ spec:
             cpu: "300m"
             memory: "64Mi"
         volumeMounts:
-        - name: registry-cert
-          mountPath: /registry-cert
-        - name: host-etc
-          mountPath: /etc
+        - name: ca-cert
+          mountPath: /ca-cert
+        - name: hostfs
+          mountPath: /host
           readOnly: false
       terminationGracePeriodSeconds: 30
       volumes:
-      - name: registry-cert
+      - name: ca-cert
         secret:
-          secretName: docker-registry-tls
-      - name: host-etc
+          secretName: registry-ca-key-pair
+      - name: hostfs
         hostPath:
-          path: /etc
+          path: /

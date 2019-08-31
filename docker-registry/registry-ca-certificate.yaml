@@ -7,7 +7,7 @@ spec:
   secretName: registry-ca-key-pair
   duration: 43800h # 5y
   issuerRef:
-    name: cluster-ca-issuer
+    name: selfsigning-issuer
     kind: ClusterIssuer
   commonName: "ca.cert.registry"
   isCA: true

@@ -37,8 +37,10 @@ spec:
             for OLDCERT in $(ls /etc/ssl/custom-ca | grep -E 'custom-ca-cert-[0-9]+\.pem' | grep -v "$CERT_FILE"); do
               rm /etc/ssl/custom-ca/$OLDCERT
             done
-            while true; do sleep 86400; done &
+            (while true; do sleep 86400; done) &
+            SLEEP_PID=$!
             terminate() {
+              kill -9 $SLEEP_PID
               exit 0
             }
             trap terminate 1 2 15
