@@ -1,8 +1,7 @@
 docker registry
 =
 
-This kustomization provides a private docker registry installation
-with basic auth & TLS.  
+A private docker registry with TLS, basic auth and credential rotation.  
 
 For TLS the [cert-manager](https://github.com/jetstack/cert-manager)
 is required.  
