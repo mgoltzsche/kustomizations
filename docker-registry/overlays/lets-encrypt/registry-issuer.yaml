@@ -1,0 +1,15 @@
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Issuer
+metadata:
+  name: registry-issuer
+spec:
+  acme:
+    # The ACME server URL (staging)
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    # Email address used for ACME registration
+    email: john.doe@example.org
+    # Name of a secret used to store the ACME account private key
+    privateKeySecretRef:
+      name: registry-letsencrypt-staging
+    # Enable the HTTP-01 challenge provider
+    http01: {}

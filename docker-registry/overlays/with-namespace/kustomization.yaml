@@ -1,0 +1,9 @@
+bases:
+- ../self-signed-ca
+
+namespace: docker-registry
+
+nameSuffix: -dev
+
+resources:
+- namespace.yaml

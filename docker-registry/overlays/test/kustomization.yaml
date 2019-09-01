@@ -1,0 +1,15 @@
+bases:
+- ../../base
+
+resources:
+- rbac-test.yaml
+- registry-test.yaml
+
+vars:
+- name: REGISTRY_TEST_DEPLOYMENT
+  objref:
+    kind: Deployment
+    name: registry-test
+    apiVersion: extensions/v1beta1
+  fieldref:
+    fieldpath: metadata.name

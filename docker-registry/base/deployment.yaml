@@ -1,15 +1,19 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: docker-registry
-  namespace: docker-registry
+  name: registry
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: $(DEPLOYMENT_NAME)
   template:
     metadata:
       labels:
-        app: docker-registry
+        app: $(DEPLOYMENT_NAME)
     spec:
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60
       containers:
       - name: registry
         image: registry:2
@@ -67,7 +71,7 @@ spec:
           name: registry-nginx-conf
       - name: cert
         secret:
-          secretName: docker-registry-tls
+          secretName: $(CERT_SECRET_NAME)
       - name: auth
         secret:
-          secretName: docker-registry-htpasswd
+          secretName: $(DEPLOYMENT_NAME)-htpasswd

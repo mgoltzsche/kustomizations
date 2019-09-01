@@ -1,0 +1,20 @@
+bases:
+- ../test
+
+resources:
+- registry-ca-issuer.yaml
+- registry-ca-certificate.yaml
+- registry-ca-injector-daemonset.yaml
+- registry-issuer.yaml
+
+patchesStrategicMerge:
+- certificate.yaml
+
+vars:
+- name: CA_CERT_SECRET_NAME
+  objref:
+    kind: Certificate
+    name: registry-ca-cert
+    apiVersion: certmanager.k8s.io/v1alpha1
+  fieldref:
+    fieldpath: metadata.name

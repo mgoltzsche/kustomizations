@@ -1,0 +1,12 @@
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: registry-ca-cert
+spec:
+  secretName: $(CA_CERT_SECRET_NAME)
+  duration: 43800h # 5y
+  issuerRef:
+    name: registry-ca-issuer
+    kind: Issuer
+  commonName: $(SERVICE_NAME).$(SERVICE_NAMESPACE).svc
+  isCA: true

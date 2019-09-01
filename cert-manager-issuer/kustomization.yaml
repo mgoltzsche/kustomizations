@@ -2,4 +2,3 @@ resources:
   - selfsigning-issuer.yaml
   - cluster-ca-certificate.yaml
   - ca-clusterissuer.yaml
-#  - ca-cert-injector-daemonset.yaml

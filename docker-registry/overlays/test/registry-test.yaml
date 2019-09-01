@@ -1,0 +1,169 @@
+# This deployment defines a pod that runs a push and a pull test and
+# deletes it self afterwards.
+# For each test case there is a separate container: after the push test
+# succeeds it notifies the pull test container via a named pipe to proceed
+# pulling the previously pushed image via a kubernetes node.
+# The pod becomes ready only if both tests have succeeded. Meanwhile
+# each test's last stderr log line is published as a readinessProbe's
+# event that can be displayed by higher-level tooling as k8spkg during
+# installation or update.
+# In order to make the test work for updates as well and be respected
+# by client tools (e.g. `kubectl rollout status`) it has been
+# declared as deployment. It cannot be declared as a job since jobs
+# cannot be updated.
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: registry-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: $(REGISTRY_TEST_DEPLOYMENT)
+  template:
+    metadata:
+      labels:
+        app: $(REGISTRY_TEST_DEPLOYMENT)
+    spec:
+      shareProcessNamespace: true
+      containers:
+      - name: push-test
+        securityContext:
+          privileged: true
+          runAsUser: 100000
+          runAsGroup: 100000
+        image: mgoltzsche/podman:1.5
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+            rm -f /shared/pull-test-trigger
+            touch /tmp/testlog
+            tail -f /tmp/testlog &
+            TAILPID=$!
+
+            set -exo pipefail
+            echo $'#!/bin/sh\n[ "`cat /tmp/testlog`" = success ] || (echo -n "$1: "`tail -n1 /tmp/testlog`; false)' > /shared/report
+            chmod +x /shared/report
+
+            (
+              set -eo pipefail
+              CTR="$(buildah from docker.io/library/alpine:3.10)"
+              buildah config --cmd "echo hello world" "$CTR"
+              IMGID="$(buildah commit "$CTR" registry-test:latest)"
+              buildah push "$IMGID" docker://${SERVICE_NAME}.${SERVICE_NAMESPACE}.svc/registry-test:latest
+              echo push-succeeded > /shared/pull-test-trigger
+            ) 2>>/tmp/testlog || (sleep 10; false)
+            echo success > /tmp/testlog
+            sleep 180
+            kill -9 $TAILPID
+        env:
+        - name: SERVICE_NAMESPACE
+          value: $(SERVICE_NAMESPACE)
+        - name: SERVICE_NAME
+          value: $(SERVICE_NAME)
+        - name: HOME
+          value: /podman
+        readinessProbe:
+          exec:
+            command:
+              - /shared/report
+              - push-test
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "64Mi"
+          limits:
+            cpu: "300m"
+            memory: "128Mi"
+        volumeMounts:
+        - name: auth
+          mountPath: /podman/.docker/config.json
+          subPath: .dockerconfigjson
+        - name: auth
+          mountPath: /etc/ssl/certs/ca-cert-registry.pem
+          subPath: ca.crt
+        - name: storage
+          mountPath: /podman/.local/share/containers/storage
+        - name: shared
+          mountPath: /shared
+      - name: pull-test
+        securityContext:
+          runAsUser: 100000
+          runAsGroup: 100000
+        image: bitnami/kubectl:1.15
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+            echo waiting for successful push > /tmp/testlog
+            tail -f /tmp/testlog &
+            TAILPID=$!
+
+            (
+            while [ ! -f /shared/pull-test-trigger ]; do sleep 3; done
+            set -ex
+            JOB_NAME=registry-pull-test-$(date +%Y%m%d%H%M%S)
+            STATUS=0
+            (
+            set -e
+            kubectl apply -n "$SERVICE_NAMESPACE" -f - <<-EOF
+              apiVersion: batch/v1
+              kind: Job
+              metadata:
+                name: $JOB_NAME
+                namespace: ${SERVICE_NAMESPACE}
+              spec:
+                template:
+                  spec:
+                    containers:
+                    - name: registry-pull-test
+                      image: ${SERVICE_NAME}.${SERVICE_NAMESPACE}.svc/registry-test:latest
+                      imagePullPolicy: Always
+                    restartPolicy: Never
+                    imagePullSecrets:
+                    - name: ${DEPLOYMENT_NAME}-pull-credentials
+            EOF
+            kubectl wait --for condition=complete -n "$SERVICE_NAMESPACE" "job/$JOB_NAME" --timeout 2m ||
+               (kubectl describe -n "$SERVICE_NAMESPACE" "job/$JOB_NAME" | tail -n5 1>&2; false)
+            ) 2>>/tmp/testlog || STATUS=1
+            kubectl delete -n "$SERVICE_NAMESPACE" "job/$JOB_NAME" || (sleep 10; false)
+            [ $STATUS -eq 0 ] || (sleep 10; false)
+            kill -9 $TAILPID
+            echo success > /tmp/testlog
+            ) &
+            sleep 180
+            # Delete test deployment on success - no need to run it continuously
+            kubectl delete -n "$SERVICE_NAMESPACE" deployment/$REGISTRY_TEST_DEPLOYMENT
+        env:
+        - name: SERVICE_NAMESPACE
+          value: $(SERVICE_NAMESPACE)
+        - name: SERVICE_NAME
+          value: $(SERVICE_NAME)
+        - name: DEPLOYMENT_NAME
+          value: $(DEPLOYMENT_NAME)
+        - name: REGISTRY_TEST_DEPLOYMENT
+          value: $(REGISTRY_TEST_DEPLOYMENT)
+        readinessProbe:
+          exec:
+            command:
+              - /shared/report
+              - pull-test
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: shared
+          mountPath: /shared
+      terminationGracePeriodSeconds: 0
+      automountServiceAccountToken: true
+      serviceAccountName: registry-test
+      volumes:
+      - name: auth
+        secret:
+          secretName: $(DEPLOYMENT_NAME)-push-credentials
+      - name: storage
+        emptyDir: {}
+      - name: shared
+        emptyDir: {}
+      automountServiceAccountToken: true
+      serviceAccountName: registry-test

@@ -1,0 +1,37 @@
+nameReference:
+- kind: Issuer
+  fieldSpecs:
+  - path: spec/issuerRef/name
+    kind: Certificate
+- kind: Secret
+  fieldSpecs:
+  - path: spec/secretName
+    kind: Certificate
+  - path: spec/ca/secretName
+    kind: Issuer
+
+varReference:
+- kind: Certificate
+  path: spec/commonName
+- kind: Certificate
+  path: spec/dnsNames
+- kind: Certificate
+  path: spec/secretName
+- kind: Issuer
+  path: spec/ca/secretName
+- kind: Deployment
+  path: spec/template/metadata/labels/app
+- kind: Deployment
+  path: spec/selector/matchLabels/app
+- kind: Deployment
+  path: spec/template/spec/volumes/secret/secretName
+- kind: DaemonSet
+  path: spec/template/spec/volumes/secret/secretName
+- kind: CronJob
+  path: spec/jobTemplate/spec/template/spec/volumes/secret/secretName
+- kind: CronJob
+  path: spec/jobTemplate/metadata/labels/app
+- kind: CronJob
+  path: spec/selector/matchLabels/app
+- kind: Service
+  path: spec/selector/app

@@ -1,0 +1,74 @@
+# A docker registry with TLS and basic auth using nginx.
+# Related links:
+# - https://kubernetes.io/docs/concepts/containers/images/#using-a-private-registry
+# - https://docs.docker.com/registry/recipes/nginx/
+# - https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+
+resources:
+  - certificate.yaml
+  - credential-rotator-serviceaccount.yaml
+  - credential-rotator-cronjob.yaml
+  - credential-initializer-deployment.yaml
+  - deployment.yaml
+  - service.yaml
+  - registry-clusterip-injector-daemonset.yaml
+  #- ingress.yaml
+
+configMapGenerator:
+- name: registry-nginx-conf
+  files:
+    - nginx.conf
+
+vars:
+- name: SERVICE_NAMESPACE
+  objref:
+    kind: Service
+    name: registry
+    apiVersion: v1
+  fieldref:
+    fieldpath: metadata.namespace
+- name: SERVICE_NAME
+  objref:
+    kind: Service
+    name: registry
+    apiVersion: v1
+  fieldref:
+    fieldpath: metadata.name
+- name: COMMON_NAME
+  objref:
+    kind: Certificate
+    name: registry-cert
+    apiVersion: certmanager.k8s.io/v1alpha1
+  fieldref:
+    fieldpath: spec.commonName
+- name: CERT_SECRET_NAME
+  objref:
+    kind: Certificate
+    name: registry-cert
+    apiVersion: certmanager.k8s.io/v1alpha1
+  fieldref:
+    fieldpath: metadata.name
+- name: DEPLOYMENT_NAME
+  objref:
+    kind: Deployment
+    name: registry
+    apiVersion: extensions/v1beta1
+  fieldref:
+    fieldpath: metadata.name
+- name: CREDENTIAL_INIT_DEPLOYMENT_NAME
+  objref:
+    kind: Deployment
+    name: registry-credential-initializer
+    apiVersion: extensions/v1beta1
+  fieldref:
+    fieldpath: metadata.name
+- name: CREDENTIAL_ROTATOR_CRON_NAME
+  objref:
+    kind: CronJob
+    name: registry-credential-rotator
+    apiVersion: batch/v1beta1
+  fieldref:
+    fieldpath: metadata.name
+
+configurations:
+- kustomizeconfig/certificate.yaml

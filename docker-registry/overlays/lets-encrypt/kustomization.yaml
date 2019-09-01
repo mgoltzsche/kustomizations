@@ -1,0 +1,5 @@
+bases:
+- ../test
+
+resources:
+- registry-issuer.yaml

@@ -1,20 +1,21 @@
 # Installs the CA cert on each node.
+# Tested successfully using CRI-O as container runtime
+# on a centos:7-based host.
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
-  name: registry-cert-injector-daemonset
-  namespace: docker-registry
+  name: registry-ca-injector-daemonset
 spec:
   updateStrategy:
     type: RollingUpdate
   template:
     metadata:
       labels:
-        run-once-daemonset: registry-cert-injector-daemonset
+        run-once-daemonset: registry-ca-injector-daemonset
     spec:
       hostPID: true
       containers:
-      - name: registry-cert-injector-daemonset
+      - name: registry-ca-injector-daemonset
         image: governmentpaas/curl-ssl
         imagePullPolicy: IfNotPresent
         command: ["/bin/sh", "-c"]
@@ -24,11 +25,11 @@ spec:
             copyCaCert() {
               CERT_DIR=$1
               mkdir -p "$CERT_DIR"
-              CERT_FILE=$CERT_DIR/registry-ca-$(md5sum /ca-cert/ca.crt | cut -d' ' -f1).crt
+              CERT_FILE=$CERT_DIR/registry-ca-${CERT_NAME}-$(md5sum /ca-cert/ca.crt | cut -d' ' -f1).crt
               if [ ! -f $CERT_FILE ]; then
-                cp /ca-cert/ca.crt $CERT_DIR/.tmp-registry-ca-cert
-                mv $CERT_DIR/.tmp-registry-ca-cert $CERT_FILE
-                for OLDCERT in $(ls $CERT_DIR | grep -E 'registry-ca-[0-9]+\.crt' | sort -r | tail -n +2); do
+                cp /ca-cert/ca.crt $CERT_DIR/.tmp-registry-ca-cert-$CERT_NAME
+                mv $CERT_DIR/.tmp-registry-ca-cert-$CERT_NAME $CERT_FILE
+                for OLDCERT in $(ls $CERT_DIR | grep -E "registry-ca-${CERT_NAME}-"'[0-9a-f]+\.crt' | grep -v $CERT_NAME); do
                   rm -f $CERT_DIR/$OLDCERT
                 done
               fi
@@ -78,6 +79,9 @@ spec:
           limits:
             cpu: "300m"
             memory: "64Mi"
+        env:
+        - name: CERT_NAME
+          value: $(CA_CERT_SECRET_NAME)
         volumeMounts:
         - name: ca-cert
           mountPath: /ca-cert
@@ -88,7 +92,7 @@ spec:
       volumes:
       - name: ca-cert
         secret:
-          secretName: registry-ca-key-pair
+          secretName: $(CA_CERT_SECRET_NAME)
       - name: hostfs
         hostPath:
           path: /
