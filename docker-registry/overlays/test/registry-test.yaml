@@ -1,16 +1,3 @@
-# This deployment defines a pod that runs a push and a pull test and
-# deletes it self afterwards.
-# For each test case there is a separate container: after the push test
-# succeeds it notifies the pull test container via a named pipe to proceed
-# pulling the previously pushed image via a kubernetes node.
-# The pod becomes ready only if both tests have succeeded. Meanwhile
-# each test's last stderr log line is published as a readinessProbe's
-# event that can be displayed by higher-level tooling as k8spkg during
-# installation or update.
-# In order to make the test work for updates as well and be respected
-# by client tools (e.g. `kubectl rollout status`) it has been
-# declared as deployment. It cannot be declared as a job since jobs
-# cannot be updated.
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
