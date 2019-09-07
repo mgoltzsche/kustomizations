@@ -3,7 +3,5 @@ bases:
 
 namespace: docker-registry
 
-nameSuffix: -dev
-
 resources:
 - namespace.yaml

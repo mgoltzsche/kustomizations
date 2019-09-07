@@ -41,7 +41,7 @@ spec:
               echo push-succeeded > /shared/pull-test-trigger
             ) 2>>/tmp/testlog || (sleep 10; false)
             echo success > /tmp/testlog
-            sleep 180
+            sleep 240
             kill -9 $TAILPID
         env:
         - name: SERVICE_NAMESPACE
@@ -119,7 +119,7 @@ spec:
             kill -9 $TAILPID
             echo success > /tmp/testlog
             ) &
-            sleep 180
+            sleep 240
             # Delete test deployment on success - no need to run it continuously
             kubectl delete -n "$SERVICE_NAMESPACE" deployment/$REGISTRY_TEST_DEPLOYMENT
         env:
