@@ -1,0 +1,8 @@
+- op: add
+  path: /spec/template/spec/containers/2/env/-
+  value:
+    name: LINKERD2_PROXY_IDENTITY_TRUST_ANCHORS
+    valueFrom:
+      secretKeyRef:
+        name: linkerd-identity-trust-anchors
+        key: ca.pem

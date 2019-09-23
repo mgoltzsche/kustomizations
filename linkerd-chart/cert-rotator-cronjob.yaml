@@ -1,0 +1,123 @@
+apiVersion: batch/v1
+kind: Job
+# This CronJob maintains a TLS secret with a certificate signed by the cluster CA.
+# On creation it runs immediately and reconfigures itself to run in longer intervals afterwards.
+# The certificate can be used for APIServices or Mutating/ValidatingWebhookConfiguration
+# to avoid writing their caBundle.
+# This is a self-contained way to maintain a cluster certificate declaratively.
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: linkerd-cert-rotator
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: identity
+    linkerd.io/control-plane-ns: linkerd
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: cert-rotator
+            image: lachlanevenson/k8s-kubectl:v1.15.3
+            command: ["/bin/sh", "-c"]
+            args:
+            - |
+                set -ex
+                # Also see https://www.scottguymer.co.uk/post/kubernetes-mutating-webhook-configuration/
+                kubectl patch cronjob/${CRON_NAME} -p '{"spec":{"schedule": "0 0 1 * *"}}'
+                apk add --update --no-cache openssl jq
+                cat > /tmp/csr.conf <<-EOF
+                  [req]
+                  default_bits            = 2048
+                  distinguished_name = req_distinguished_name
+                  #req_extensions     = v3_req
+                  x509_extensions = v3_ca
+                  [req_distinguished_name]
+                  [ v3_req ]
+                  basicConstraints = CA:FALSE
+                  keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+                  extendedKeyUsage = serverAuth
+                  subjectAltName = @alt_names
+                  [alt_names]
+                  DNS.1 = ${SERVICE_NAME}
+                  DNS.2 = ${SERVICE_NAME}.${NAMESPACE}
+                  DNS.3 = ${SERVICE_NAME}.${NAMESPACE}.svc
+                  DNS.4 = ${SERVICE_NAME}.${NAMESPACE}.${CLUSTER_DOMAIN}
+                  [ v3_ca ]
+                  basicConstraints = CA:TRUE
+                  keyUsage = keyCertSign,digitalSignature,keyEncipherment
+                  extendedKeyUsage=serverAuth,clientAuth
+                  #subjectKeyIdentifier = hash
+                  #authorityKeyIdentifier = keyid:always,issuer:always
+                EOF
+                openssl genrsa -out /tmp/tls.key 2048
+                openssl req -new -out /tmp/tls.csr -key /tmp/tls.key -sha512 -days 90 -subj "/CN=${SERVICE_NAME}.${NAMESPACE}.${CLUSTER_DOMAIN}" -extensions v3_ca -config /tmp/csr.conf
+                kubectl delete csr ${SERVICE_NAME}.${NAMESPACE} --ignore-not-found
+                kubectl create -f - <<-EOF
+                  apiVersion: certificates.k8s.io/v1beta1
+                  kind: CertificateSigningRequest
+                  metadata:
+                    name: ${SERVICE_NAME}.${NAMESPACE}
+                  spec:
+                    groups:
+                    - system:authenticated
+                    request: $(cat /tmp/tls.csr | base64 | tr -d '\n')
+                    usages:
+                    - digital signature
+                    - key encipherment
+                    - server auth
+                EOF
+                kubectl certificate approve ${SERVICE_NAME}.${NAMESPACE}
+                kubectl get csr ${SERVICE_NAME}.${NAMESPACE} -o jsonpath='{.status.certificate}' | base64 -d > /tmp/tls.crt
+                [ "$(openssl rsa -modulus -noout -in /tmp/tls.key | openssl md5)" = "$(openssl x509 -modulus -noout -in /tmp/tls.crt | openssl md5)" ] \
+                  || (echo priv key does not match pub key >&2; false)
+                openssl verify -verbose -CAfile /run/secrets/kubernetes.io/serviceaccount/ca.crt /tmp/tls.crt
+                # Update linkerd configuration with CA cert
+                CA_CRT="$(cat /run/secrets/kubernetes.io/serviceaccount/ca.crt)"
+                CFG_TRANSFORM='.metadata.name = "linkerd-config" | .data.global = (.data.global | fromjson | .identityContext.trustAnchorsPem = $ca | tojson) | del(.metadata.uid) | del(.metadata.resourceVersion) | del(.metadata.creationTimestamp)'
+                kubectl get configmap linkerd-config-tpl -o json | jq -e --arg ca "$CA_CRT" "$CFG_TRANSFORM" - | kubectl apply -f -
+                # TODO: use ca.crt from service account token instead of saving it here again
+                kubectl apply -f - <<-EOF
+                  apiVersion: v1
+                  kind: Secret
+                  metadata:
+                    name: ${CA_SECRET_NAME}
+                  type: Opaque
+                  data:
+                    ca.pem: $(cat /run/secrets/kubernetes.io/serviceaccount/ca.crt | base64 | tr -d '\n')
+                EOF
+                kubectl apply -f - <<-EOF
+                  apiVersion: v1
+                  kind: Secret
+                  metadata:
+                    name: ${SECRET_NAME}
+                    labels:
+                      linkerd.io/control-plane-component: identity
+                      linkerd.io/control-plane-ns: linkerd
+                  type: Opaque
+                  data:
+                    crt.pem: $(cat /tmp/tls.crt | base64 | tr -d '\n')
+                    key.pem: $(cat /tmp/tls.key | base64 | tr -d '\n')
+                EOF
+            env:
+            - name: CLUSTER_DOMAIN
+              value: cluster.local
+            - name: SERVICE_NAME
+              value: identity
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: CRON_NAME
+              value: linkerd-cert-rotator
+            - name: SECRET_NAME
+              value: linkerd-identity-issuer
+            - name: CA_SECRET_NAME
+              value: linkerd-identity-trust-anchors
+          restartPolicy: Never
+          automountServiceAccountToken: true
+          serviceAccountName: linkerd-cert-issuer
+      backoffLimit: 0

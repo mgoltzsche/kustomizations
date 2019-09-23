@@ -1,0 +1,10 @@
+ControllerReplicas: 1
+EnablePodAntiAffinity: false
+
+Identity:
+  TrustAnchorsPEM: replace-ca-crt
+  Issuer:
+    TLS:
+      CrtPEM: replace-issuer-crt
+      KeyPEM: replace-issuer-key
+    CrtExpiry: remove-crt-expiry

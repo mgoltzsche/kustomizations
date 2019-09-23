@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: linkerd-config-tpl
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: controller
+    linkerd.io/control-plane-ns: linkerd
+data:
+  global: |
+    {
+      "linkerdNamespace": "linkerd",
+      "cniEnabled": false,
+      "version": "stable-2.5.0",
+      "identityContext":{
+        "trustDomain": "cluster.local",
+        "trustAnchorsPem": "replace-ca-crt",
+        "issuanceLifeTime": "86400s",
+        "clockSkewAllowance": "20s"
+      },
+      "autoInjectContext": null,
+      "omitWebhookSideEffects": false,
+      "clusterDomain": "cluster.local"
+    }
+  install: |
+    {
+      "uuid":"e71a4cb2-12b5-4c28-92f7-2e95cc26fb8b",
+      "cliVersion":"stable-2.5.0",
+      "flags":[]
+    }
+  proxy: |
+    {
+      "proxyImage":{
+        "imageName":"gcr.io/linkerd-io/proxy",
+        "pullPolicy":"IfNotPresent"
+      },
+      "proxyInitImage":{
+        "imageName":"gcr.io/linkerd-io/proxy-init",
+        "pullPolicy":"IfNotPresent"
+      },
+      "controlPort":{
+        "port": 4190
+      },
+      "ignoreInboundPorts":[],
+      "ignoreOutboundPorts":[],
+      "inboundPort":{
+        "port": 4143
+      },
+      "adminPort":{
+        "port": 4191
+      },
+      "outboundPort":{
+        "port": 4140
+      },
+      "resource":{
+        "requestCpu": "",
+        "limitCpu": "",
+        "requestMemory": "",
+        "limitMemory": ""
+      },
+      "proxyUid": 2102,
+      "logLevel":{
+        "level": "warn,linkerd2_proxy=info"
+      },
+      "disableExternalProfiles": true,
+      "proxyVersion": "stable-2.5.0",
+      "proxyInitImageVersion": "v1.0.0"
+    }
