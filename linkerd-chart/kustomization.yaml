@@ -9,5 +9,5 @@ resources:
 
 patchesStrategicMerge:
 - patches/proxy-use-identity-ca.yaml
-- patches/apiservice-remove-cabundle.yaml
+- patches/apiservice-inject-cabundle.yaml
 - patches/apiservice-use-clustersigned-cert.yaml

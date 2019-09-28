@@ -17,7 +17,8 @@ spec:
               name: linkerd-identity-trust-anchors
         volumeMounts:
         - name: issuer-ca
-          mountPath: /etc/ssl/certs
+          subPath: ca.pem
+          mountPath: /etc/ssl/certs/ca-cert.pem
       volumes:
       - name: issuer-ca
         secret:
@@ -42,7 +43,8 @@ spec:
               name: linkerd-identity-trust-anchors
         volumeMounts:
         - name: issuer-ca
-          mountPath: /etc/ssl/certs
+          subPath: ca.pem
+          mountPath: /etc/ssl/certs/ca-cert.pem
       volumes:
       - name: issuer-ca
         secret:
@@ -67,7 +69,8 @@ spec:
               name: linkerd-identity-trust-anchors
         volumeMounts:
         - name: issuer-ca
-          mountPath: /etc/ssl/certs
+          subPath: ca.pem
+          mountPath: /etc/ssl/certs/ca-cert.pem
       volumes:
       - name: issuer-ca
         secret:
@@ -92,7 +95,8 @@ spec:
               name: linkerd-identity-trust-anchors
         volumeMounts:
         - name: issuer-ca
-          mountPath: /etc/ssl/certs
+          subPath: ca.pem
+          mountPath: /etc/ssl/certs/ca-cert.pem
       volumes:
       - name: issuer-ca
         secret:
@@ -118,7 +122,8 @@ spec:
               name: linkerd-identity-trust-anchors
         volumeMounts:
         - name: issuer-ca
-          mountPath: /etc/ssl/certs
+          subPath: ca.pem
+          mountPath: /etc/ssl/certs/ca-cert.pem
       volumes:
       - name: issuer-ca
         secret:

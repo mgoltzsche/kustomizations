@@ -3,6 +3,8 @@ kind: APIService
 metadata:
   name: v1alpha1.tap.linkerd.io
   namespace: linkerd
+  annotations:
+    certmanager.k8s.io/inject-apiserver-ca: "true"
 spec:
   caBundle: null
 ---
@@ -11,6 +13,8 @@ kind: ValidatingWebhookConfiguration
 metadata:
   name: linkerd-sp-validator-webhook-config
   namespace: linkerd
+  annotations:
+    certmanager.k8s.io/inject-apiserver-ca: "true"
 webhooks:
 - name: linkerd-sp-validator.linkerd.io
   clientConfig:
@@ -21,6 +25,8 @@ kind: MutatingWebhookConfiguration
 metadata:
   name: linkerd-proxy-injector-webhook-config
   namespace: linkerd
+  annotations:
+    certmanager.k8s.io/inject-apiserver-ca: "true"
 webhooks:
 - name: linkerd-proxy-injector.linkerd.io
   clientConfig:

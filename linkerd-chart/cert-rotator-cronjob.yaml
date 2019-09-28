@@ -30,7 +30,7 @@ spec:
                 apk add --update --no-cache openssl jq
                 cat > /tmp/openssl.conf <<-EOF
                   [req]
-                  #x509_extensions = v3_ca
+                  req_extensions     = v3_req
                   distinguished_name = req_distinguished_name
                   [req_distinguished_name]
                   [ v3_ca ]
@@ -95,8 +95,8 @@ spec:
                 # Request cluster CA signed cert for validator and
                 # proxy sidecar injector webhooks as well as
                 # the tap APIService
-                openssl genrsa -out /tmp/tls.key 4096
-                openssl req -new -out /tmp/tls.csr -key /tmp/tls.key -subj "/O=system:authenticated/CN=${PROXY_INJECTOR_SERVICE}.${NAMESPACE}.${CLUSTER_DOMAIN}" -config /tmp/openssl.conf -extensions v3_req
+                openssl genrsa -out /tmp/tls.key 2048
+                openssl req -new -out /tmp/tls.csr -key /tmp/tls.key -subj "/O=system:authenticated/CN=${PROXY_INJECTOR_SERVICE}.${NAMESPACE}.${CLUSTER_DOMAIN}" -config /tmp/openssl.conf
                 ISSUER_CSR=${APISERVICE_SECRET}.${NAMESPACE}
                 kubectl delete csr ${ISSUER_CSR} --ignore-not-found
                 kubectl create -f - <<-EOF
