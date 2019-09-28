@@ -16,5 +16,14 @@ exclude:
   kind: Secret
   name: linkerd-identity-issuer
 - apiVersion: v1
+  kind: Secret
+  name: linkerd-proxy-injector-tls
+- apiVersion: v1
+  kind: Secret
+  name: linkerd-sp-validator-tls
+- apiVersion: v1
+  kind: Secret
+  name: linkerd-tap-tls
+- apiVersion: v1
   kind: ConfigMap
   name: linkerd-config

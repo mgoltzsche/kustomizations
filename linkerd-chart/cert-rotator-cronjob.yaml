@@ -26,41 +26,87 @@ spec:
             args:
             - |
                 set -ex
-                # Also see https://www.scottguymer.co.uk/post/kubernetes-mutating-webhook-configuration/
                 kubectl patch cronjob/${CRON_NAME} -p '{"spec":{"schedule": "0 0 1 * *"}}'
                 apk add --update --no-cache openssl jq
-                cat > /tmp/csr.conf <<-EOF
+                cat > /tmp/openssl.conf <<-EOF
                   [req]
-                  default_bits            = 2048
+                  #x509_extensions = v3_ca
                   distinguished_name = req_distinguished_name
-                  #req_extensions     = v3_req
-                  x509_extensions = v3_ca
                   [req_distinguished_name]
+                  [ v3_ca ]
+                  basicConstraints = CA:TRUE
+                  keyUsage = cRLSign,keyCertSign,digitalSignature,keyEncipherment
+                  extendedKeyUsage=serverAuth,clientAuth
+                  subjectKeyIdentifier = hash
+                  authorityKeyIdentifier = keyid:always,issuer:always
                   [ v3_req ]
                   basicConstraints = CA:FALSE
                   keyUsage = nonRepudiation, digitalSignature, keyEncipherment
                   extendedKeyUsage = serverAuth
                   subjectAltName = @alt_names
                   [alt_names]
-                  DNS.1 = ${SERVICE_NAME}
-                  DNS.2 = ${SERVICE_NAME}.${NAMESPACE}
-                  DNS.3 = ${SERVICE_NAME}.${NAMESPACE}.svc
-                  DNS.4 = ${SERVICE_NAME}.${NAMESPACE}.${CLUSTER_DOMAIN}
-                  [ v3_ca ]
-                  basicConstraints = CA:TRUE
-                  keyUsage = keyCertSign,digitalSignature,keyEncipherment
-                  extendedKeyUsage=serverAuth,clientAuth
-                  #subjectKeyIdentifier = hash
-                  #authorityKeyIdentifier = keyid:always,issuer:always
+                  DNS.1 = ${PROXY_INJECTOR_SERVICE}
+                  DNS.2 = ${PROXY_INJECTOR_SERVICE}.${NAMESPACE}
+                  DNS.3 = ${PROXY_INJECTOR_SERVICE}.${NAMESPACE}.svc
+                  DNS.4 = ${PROXY_INJECTOR_SERVICE}.${NAMESPACE}.${CLUSTER_DOMAIN}
+                  DNS.5 = ${VALIDATOR_SERVICE}
+                  DNS.6 = ${VALIDATOR_SERVICE}.${NAMESPACE}
+                  DNS.7 = ${VALIDATOR_SERVICE}.${NAMESPACE}.svc
+                  DNS.8 = ${VALIDATOR_SERVICE}.${NAMESPACE}.${CLUSTER_DOMAIN}
+                  DNS.9 = ${TAP_SERVICE}
+                  DNS.10 = ${TAP_SERVICE}.${NAMESPACE}
+                  DNS.11 = ${TAP_SERVICE}.${NAMESPACE}.svc
+                  DNS.12 = ${TAP_SERVICE}.${NAMESPACE}.${CLUSTER_DOMAIN}
                 EOF
-                openssl genrsa -out /tmp/tls.key 2048
-                openssl req -new -out /tmp/tls.csr -key /tmp/tls.key -sha512 -days 90 -subj "/CN=${SERVICE_NAME}.${NAMESPACE}.${CLUSTER_DOMAIN}" -extensions v3_ca -config /tmp/csr.conf
-                kubectl delete csr ${SERVICE_NAME}.${NAMESPACE} --ignore-not-found
+                # Generate linkerd issuer CA key pair (using ECDSA)
+                # and update linkerd configuration with CA cert
+                openssl ecparam -name prime256v1 -genkey -noout -out /tmp/issuer-ca.key
+                # TODO: maintain cert version / backward-compatibility
+                openssl req -x509 -nodes -out /tmp/issuer-ca.crt -key /tmp/issuer-ca.key -subj "/CN=identity.${NAMESPACE}.${CLUSTER_DOMAIN}" -config /tmp/openssl.conf -extensions v3_ca
+                openssl x509 -in /tmp/issuer-ca.crt -text -noout
+                CA_CRT="$(cat /tmp/issuer-ca.crt)"
+                CFG_TRANSFORM='.metadata.name = "linkerd-config" | .data.global = (.data.global | fromjson | .identityContext.trustAnchorsPem = $ca | tojson) | del(.metadata.uid) | del(.metadata.resourceVersion) | del(.metadata.creationTimestamp)'
+                kubectl get configmap linkerd-config-tpl -o json | jq -e --arg ca "$CA_CRT" "$CFG_TRANSFORM" - | kubectl apply -f -
+                kubectl apply -f - <<-EOF
+                  apiVersion: v1
+                  kind: Secret
+                  metadata:
+                    name: ${ISSUER_CERT_SECRET}
+                    labels:
+                      linkerd.io/control-plane-component: identity
+                      linkerd.io/control-plane-ns: $NAMESPACE
+                  type: Opaque
+                  data:
+                    ca.pem: $(cat /tmp/issuer-ca.crt | base64 | tr -d '\n')
+                EOF
+                kubectl apply -f - <<-EOF
+                  apiVersion: v1
+                  kind: Secret
+                  metadata:
+                    name: ${ISSUER_SECRET}
+                    labels:
+                      linkerd.io/control-plane-component: identity
+                      linkerd.io/control-plane-ns: $NAMESPACE
+                  type: Opaque
+                  data:
+                    crt.pem: $(cat /tmp/issuer-ca.crt | base64 | tr -d '\n')
+                    key.pem: $(cat /tmp/issuer-ca.key | base64 | tr -d '\n')
+                EOF
+                # Request cluster CA signed cert for validator and
+                # proxy sidecar injector webhooks as well as
+                # the tap APIService
+                openssl genrsa -out /tmp/tls.key 4096
+                openssl req -new -out /tmp/tls.csr -key /tmp/tls.key -subj "/O=system:authenticated/CN=${PROXY_INJECTOR_SERVICE}.${NAMESPACE}.${CLUSTER_DOMAIN}" -config /tmp/openssl.conf -extensions v3_req
+                ISSUER_CSR=${APISERVICE_SECRET}.${NAMESPACE}
+                kubectl delete csr ${ISSUER_CSR} --ignore-not-found
                 kubectl create -f - <<-EOF
                   apiVersion: certificates.k8s.io/v1beta1
                   kind: CertificateSigningRequest
                   metadata:
-                    name: ${SERVICE_NAME}.${NAMESPACE}
+                    name: ${ISSUER_CSR}
+                    labels:
+                      linkerd.io/control-plane-component: identity
+                      linkerd.io/control-plane-ns: $NAMESPACE
                   spec:
                     groups:
                     - system:authenticated
@@ -68,55 +114,50 @@ spec:
                     usages:
                     - digital signature
                     - key encipherment
+                    #- key cert sign
+                    #- crl sign
                     - server auth
+                    #- client auth
                 EOF
-                kubectl certificate approve ${SERVICE_NAME}.${NAMESPACE}
-                kubectl get csr ${SERVICE_NAME}.${NAMESPACE} -o jsonpath='{.status.certificate}' | base64 -d > /tmp/tls.crt
-                [ "$(openssl rsa -modulus -noout -in /tmp/tls.key | openssl md5)" = "$(openssl x509 -modulus -noout -in /tmp/tls.crt | openssl md5)" ] \
-                  || (echo priv key does not match pub key >&2; false)
+                kubectl certificate approve ${ISSUER_CSR}
+                kubectl get csr ${ISSUER_CSR} -o jsonpath='{.status.certificate}' | base64 -d > /tmp/tls.crt
                 openssl verify -verbose -CAfile /run/secrets/kubernetes.io/serviceaccount/ca.crt /tmp/tls.crt
-                # Update linkerd configuration with CA cert
-                CA_CRT="$(cat /run/secrets/kubernetes.io/serviceaccount/ca.crt)"
-                CFG_TRANSFORM='.metadata.name = "linkerd-config" | .data.global = (.data.global | fromjson | .identityContext.trustAnchorsPem = $ca | tojson) | del(.metadata.uid) | del(.metadata.resourceVersion) | del(.metadata.creationTimestamp)'
-                kubectl get configmap linkerd-config-tpl -o json | jq -e --arg ca "$CA_CRT" "$CFG_TRANSFORM" - | kubectl apply -f -
-                # TODO: use ca.crt from service account token instead of saving it here again
                 kubectl apply -f - <<-EOF
                   apiVersion: v1
                   kind: Secret
                   metadata:
-                    name: ${CA_SECRET_NAME}
-                  type: Opaque
-                  data:
-                    ca.pem: $(cat /run/secrets/kubernetes.io/serviceaccount/ca.crt | base64 | tr -d '\n')
-                EOF
-                kubectl apply -f - <<-EOF
-                  apiVersion: v1
-                  kind: Secret
-                  metadata:
-                    name: ${SECRET_NAME}
+                    name: ${APISERVICE_SECRET}
                     labels:
                       linkerd.io/control-plane-component: identity
-                      linkerd.io/control-plane-ns: linkerd
+                      linkerd.io/control-plane-ns: $NAMESPACE
                   type: Opaque
                   data:
                     crt.pem: $(cat /tmp/tls.crt | base64 | tr -d '\n')
                     key.pem: $(cat /tmp/tls.key | base64 | tr -d '\n')
                 EOF
             env:
-            - name: CLUSTER_DOMAIN
-              value: cluster.local
-            - name: SERVICE_NAME
-              value: identity
             - name: NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: CRON_NAME
               value: linkerd-cert-rotator
-            - name: SECRET_NAME
+            - name: CLUSTER_DOMAIN
+              value: cluster.local
+            - name: ISSUER_SECRET
               value: linkerd-identity-issuer
-            - name: CA_SECRET_NAME
+            - name: ISSUER_CERT_SECRET
               value: linkerd-identity-trust-anchors
+            - name: IDENTITY_SERVICE
+              value: linkerd-identity
+            - name: APISERVICE_SECRET
+              value: linkerd-apiservice-tls
+            - name: PROXY_INJECTOR_SERVICE
+              value: linkerd-proxy-injector
+            - name: VALIDATOR_SERVICE
+              value: linkerd-sp-validator
+            - name: TAP_SERVICE
+              value: linkerd-tap
           restartPolicy: Never
           automountServiceAccountToken: true
           serviceAccountName: linkerd-cert-issuer

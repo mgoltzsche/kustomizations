@@ -1,2 +1,0 @@
-- op: remove
-  path: /webhooks/0/clientConfig/caBundle
