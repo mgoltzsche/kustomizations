@@ -19,6 +19,9 @@ configMapGenerator:
   files:
     - nginx.conf
 
+configurations:
+- kustomizeconfig/certificate.yaml
+
 vars:
 - name: SERVICE_NAMESPACE
   objref:

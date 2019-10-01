@@ -33,15 +33,14 @@ spec:
             chmod +x /shared/report
 
             (
-              set -eo pipefail
-              CTR="$(buildah from docker.io/library/alpine:3.10)"
-              buildah config --cmd "echo hello world" "$CTR"
-              IMGID="$(buildah commit "$CTR" registry-test:latest)"
-              buildah push "$IMGID" docker://${SERVICE_NAME}.${SERVICE_NAMESPACE}.svc/registry-test:latest
+              CTR="$(buildah from docker.io/library/alpine:3.10)" &&
+              buildah config --cmd "echo hello world" "$CTR" &&
+              IMGID="$(buildah commit "$CTR" registry-test:latest)" &&
+              buildah push "$IMGID" docker://${SERVICE_NAME}.${SERVICE_NAMESPACE}.svc/registry-test:latest &&
               echo push-succeeded > /shared/pull-test-trigger
             ) 2>>/tmp/testlog || (sleep 10; false)
             echo success > /tmp/testlog
-            sleep 240
+            sleep 300
             kill -9 $TAILPID
         env:
         - name: SERVICE_NAMESPACE
@@ -79,7 +78,7 @@ spec:
         securityContext:
           runAsUser: 100000
           runAsGroup: 100000
-        image: bitnami/kubectl:1.15
+        image: lachlanevenson/k8s-kubectl:v1.15.3
         command: ["/bin/sh", "-c"]
         args:
         - |
@@ -119,7 +118,7 @@ spec:
             kill -9 $TAILPID
             echo success > /tmp/testlog
             ) &
-            sleep 240
+            sleep 300
             # Delete test deployment on success - no need to run it continuously
             kubectl delete -n "$SERVICE_NAMESPACE" deployment/$REGISTRY_TEST_DEPLOYMENT
         env:
@@ -141,9 +140,6 @@ spec:
         volumeMounts:
         - name: shared
           mountPath: /shared
-      terminationGracePeriodSeconds: 0
-      automountServiceAccountToken: true
-      serviceAccountName: registry-test
       volumes:
       - name: auth
         secret:
@@ -152,5 +148,6 @@ spec:
         emptyDir: {}
       - name: shared
         emptyDir: {}
+      terminationGracePeriodSeconds: 0
       automountServiceAccountToken: true
       serviceAccountName: registry-test
