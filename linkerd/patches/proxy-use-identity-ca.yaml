@@ -13,16 +13,20 @@ spec:
           value: null
           valueFrom:
             secretKeyRef:
-              key: ca.pem
-              name: linkerd-identity-trust-anchors
+              key: ca.crt
+              name: linkerd-identity-issuer-tls
+        # Added to enforce update
         volumeMounts:
-        - name: issuer-ca
-          subPath: ca.pem
-          mountPath: /etc/ssl/certs/ca-cert.pem
+        - name: identity-ca
+          subPath: ca.crt
+          mountPath: /etc/ssl/certs/ca-identity-cert.pem
       volumes:
-      - name: issuer-ca
+      - name: identity-ca
         secret:
-          secretName: linkerd-identity-trust-anchors
+          secretName: linkerd-identity-issuer-tls
+      - name: identity-issuer # overwritten
+        secret:
+          secretName: linkerd-identity-issuer-tls-converted
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -39,16 +43,17 @@ spec:
           value: null
           valueFrom:
             secretKeyRef:
-              key: ca.pem
-              name: linkerd-identity-trust-anchors
+              key: ca.crt
+              name: linkerd-identity-issuer-tls
+        # Added to enforce update
         volumeMounts:
-        - name: issuer-ca
-          subPath: ca.pem
-          mountPath: /etc/ssl/certs/ca-cert.pem
+        - name: identity-ca
+          subPath: ca.crt
+          mountPath: /etc/ssl/certs/ca-identity-cert.pem
       volumes:
-      - name: issuer-ca
+      - name: identity-ca
         secret:
-          secretName: linkerd-identity-trust-anchors
+          secretName: linkerd-identity-issuer-tls
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -65,16 +70,17 @@ spec:
           value: null
           valueFrom:
             secretKeyRef:
-              key: ca.pem
-              name: linkerd-identity-trust-anchors
+              key: ca.crt
+              name: linkerd-identity-issuer-tls
+        # Added to enforce update
         volumeMounts:
-        - name: issuer-ca
-          subPath: ca.pem
-          mountPath: /etc/ssl/certs/ca-cert.pem
+        - name: identity-ca
+          subPath: ca.crt
+          mountPath: /etc/ssl/certs/ca-identity-cert.pem
       volumes:
-      - name: issuer-ca
+      - name: identity-ca
         secret:
-          secretName: linkerd-identity-trust-anchors
+          secretName: linkerd-identity-issuer-tls
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -91,17 +97,17 @@ spec:
           value: null
           valueFrom:
             secretKeyRef:
-              key: ca.pem
-              name: linkerd-identity-trust-anchors
+              key: ca.crt
+              name: linkerd-identity-issuer-tls
+        # Added to enforce update
         volumeMounts:
-        - name: issuer-ca
-          subPath: ca.pem
-          mountPath: /etc/ssl/certs/ca-cert.pem
+        - name: identity-ca
+          subPath: ca.crt
+          mountPath: /etc/ssl/certs/ca-identity-cert.pem
       volumes:
-      - name: issuer-ca
+      - name: identity-ca
         secret:
-          secretName: linkerd-identity-trust-anchors
----
+          secretName: linkerd-identity-issuer-tls
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -118,13 +124,14 @@ spec:
           value: null
           valueFrom:
             secretKeyRef:
-              key: ca.pem
-              name: linkerd-identity-trust-anchors
+              key: ca.crt
+              name: linkerd-identity-issuer-tls
+        # Added to enforce update
         volumeMounts:
-        - name: issuer-ca
-          subPath: ca.pem
-          mountPath: /etc/ssl/certs/ca-cert.pem
+        - name: identity-ca
+          subPath: ca.crt
+          mountPath: /etc/ssl/certs/ca-identity-cert.pem
       volumes:
-      - name: issuer-ca
+      - name: identity-ca
         secret:
-          secretName: linkerd-identity-trust-anchors
+          secretName: linkerd-identity-issuer-tls

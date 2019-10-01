@@ -3,11 +3,12 @@ generators:
 
 resources:
 - namespace.yaml
+- certificates.yaml
 - linkerd-configmap-tpl.yaml
-- cert-rotator-rbac.yaml
-- cert-rotator-cronjob.yaml
+- cert-sync-rbac.yaml
+- cert-sync.yaml
 
 patchesStrategicMerge:
 - patches/proxy-use-identity-ca.yaml
-- patches/apiservice-inject-cabundle.yaml
-- patches/apiservice-use-clustersigned-cert.yaml
+- patches/apiserviceconfig-annotate-cabundle.yaml
+- patches/apiservice-use-cert-secrets.yaml

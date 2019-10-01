@@ -1,0 +1,82 @@
+# 
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: cert-sync
+  namespace: linkerd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ca-config-sync
+  template:
+    metadata:
+      labels:
+        app: ca-config-sync
+    spec:
+      containers:
+      - name: sync
+        image: lachlanevenson/k8s-kubectl:v1.15.3
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+            (
+            set -e
+            apk add --update jq
+            CA_CRT="$(cat /tmp/identity-issuer-tls/ca.crt)"
+            set -x
+            #CFG_TRANSFORM='.metadata.name = "linkerd-config" | .data.global = (.data.global | fromjson | .identityContext.trustAnchorsPem = $ca | tojson) | del(.metadata.uid) | del(.metadata.resourceVersion) | del(.metadata.creationTimestamp)'
+            #kubectl get configmap linkerd-config-tpl -o json | jq -e --arg ca "$CA_CRT" "$CFG_TRANSFORM" - | kubectl apply -f -
+            cp -r /tmp/linkerd-config-tpl /tmp/linkerd-config
+            jq -e --arg ca "$CA_CRT" '.identityContext.trustAnchorsPem = $ca' /tmp/linkerd-config-tpl/global > /tmp/linkerd-config/global
+            kubectl create configmap linkerd-config  --dry-run -o yaml $(ls /tmp/linkerd-config | xargs -I{} -n1 echo --from-file=/tmp/linkerd-config/{}) | kubectl apply -f -
+            mkdir /tmp/converted
+            # Copy apiservice TLS secrets converted to generic one for linkerd :(
+            for SECRET in apiservice-tls identity-issuer-tls; do
+              ln -sf /tmp/$SECRET/tls.crt /tmp/converted/crt.pem
+              ln -sf /tmp/$SECRET/tls.key /tmp/converted/key.pem
+              kubectl create secret generic linkerd-${SECRET}-converted --dry-run -o yaml --from-file=/tmp/converted/crt.pem --from-file=/tmp/converted/key.pem | kubectl apply -f -
+            done
+            ) &&
+            echo synced > /tmp/synced || exit 1
+            echo synced at $(date)
+            while true; do sleep 86400; done
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        readinessProbe:
+          exec:
+            command:
+              - /bin/cat
+              - /tmp/synced
+          initialDelaySeconds: 7
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "32Mi"
+          limits:
+            cpu: "200m"
+            memory: "64Mi"
+        volumeMounts:
+        - name: identity-issuer-tls
+          mountPath: /tmp/identity-issuer-tls
+        - name: apiservice-tls
+          mountPath: /tmp/apiservice-tls
+        - name: linkerd-config-tpl
+          mountPath: /tmp/linkerd-config-tpl
+      volumes:
+      - name: identity-issuer-tls
+        secret:
+          secretName: linkerd-identity-issuer-tls
+      - name: apiservice-tls
+        secret:
+          secretName: linkerd-apiservice-tls
+      - name: linkerd-config-tpl
+        configMap:
+          name: linkerd-config-tpl
+      terminationGracePeriodSeconds: 3
+      automountServiceAccountToken: true
+      serviceAccountName: linkerd-cert-sync

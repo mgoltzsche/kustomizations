@@ -58,6 +58,7 @@ spec:
                   DNS.11 = ${TAP_SERVICE}.${NAMESPACE}.svc
                   DNS.12 = ${TAP_SERVICE}.${NAMESPACE}.${CLUSTER_DOMAIN}
                 EOF
+                # TODO: rotate certificates & ensure rotation interval is managed independently from job runs (inspect expiry date)
                 # Generate linkerd issuer CA key pair (using ECDSA)
                 # and update linkerd configuration with CA cert
                 openssl ecparam -name prime256v1 -genkey -noout -out /tmp/issuer-ca.key

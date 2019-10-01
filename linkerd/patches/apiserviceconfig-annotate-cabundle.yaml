@@ -5,6 +5,7 @@ metadata:
   namespace: linkerd
   annotations:
     certmanager.k8s.io/inject-apiserver-ca: "true"
+    certmanager.k8s.io/inject-ca-from: linkerd/linkerd-identity-issuer
 spec:
   caBundle: null
 ---
@@ -15,6 +16,7 @@ metadata:
   namespace: linkerd
   annotations:
     certmanager.k8s.io/inject-apiserver-ca: "true"
+    certmanager.k8s.io/inject-ca-from: linkerd/linkerd-identity-issuer
 webhooks:
 - name: linkerd-sp-validator.linkerd.io
   clientConfig:
@@ -27,6 +29,7 @@ metadata:
   namespace: linkerd
   annotations:
     certmanager.k8s.io/inject-apiserver-ca: "true"
+    certmanager.k8s.io/inject-ca-from: linkerd/linkerd-identity-issuer
 webhooks:
 - name: linkerd-proxy-injector.linkerd.io
   clientConfig:
