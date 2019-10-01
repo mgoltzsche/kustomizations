@@ -25,8 +25,6 @@ spec:
             apk add --update jq
             CA_CRT="$(cat /tmp/identity-issuer-tls/ca.crt)"
             set -x
-            #CFG_TRANSFORM='.metadata.name = "linkerd-config" | .data.global = (.data.global | fromjson | .identityContext.trustAnchorsPem = $ca | tojson) | del(.metadata.uid) | del(.metadata.resourceVersion) | del(.metadata.creationTimestamp)'
-            #kubectl get configmap linkerd-config-tpl -o json | jq -e --arg ca "$CA_CRT" "$CFG_TRANSFORM" - | kubectl apply -f -
             cp -r /tmp/linkerd-config-tpl /tmp/linkerd-config
             jq -e --arg ca "$CA_CRT" '.identityContext.trustAnchorsPem = $ca' /tmp/linkerd-config-tpl/global > /tmp/linkerd-config/global
             kubectl create configmap linkerd-config  --dry-run -o yaml $(ls /tmp/linkerd-config | xargs -I{} -n1 echo --from-file=/tmp/linkerd-config/{}) | kubectl apply -f -
