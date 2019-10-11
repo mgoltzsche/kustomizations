@@ -8,7 +8,7 @@ metadata:
     linkerd.io/control-plane-component: proxy-injector
     linkerd.io/control-plane-ns: linkerd
   annotations:
-    certmanager.k8s.io/inject-apiserver-ca: "true"
+    cert-manager.io/inject-apiserver-ca: "true"
   name: testwebhookconfig
 webhooks:
 - clientConfig:
@@ -35,7 +35,7 @@ webhooks:
   sideEffects: None
 
 ---
-apiVersion: certmanager.k8s.io/v1alpha1
+apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
   name: test-ca-issuer
@@ -43,7 +43,7 @@ spec:
   selfSigned: {}
 
 ---
-apiVersion: certmanager.k8s.io/v1alpha1
+apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
   name: test-ca-cert

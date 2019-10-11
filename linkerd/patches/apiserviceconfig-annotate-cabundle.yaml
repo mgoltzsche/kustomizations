@@ -4,7 +4,7 @@ metadata:
   name: v1alpha1.tap.linkerd.io
   namespace: linkerd
   annotations:
-    certmanager.k8s.io/inject-ca-from: linkerd/linkerd-ca
+    cert-manager.io/inject-ca-from: linkerd/linkerd-ca
 spec:
   caBundle: null
 ---
@@ -14,7 +14,7 @@ metadata:
   name: linkerd-sp-validator-webhook-config
   namespace: linkerd
   annotations:
-    certmanager.k8s.io/inject-ca-from: linkerd/linkerd-ca
+    cert-manager.io/inject-ca-from: linkerd/linkerd-ca
 webhooks:
 - name: linkerd-sp-validator.linkerd.io
   clientConfig:
@@ -26,7 +26,7 @@ metadata:
   name: linkerd-proxy-injector-webhook-config
   namespace: linkerd
   annotations:
-    certmanager.k8s.io/inject-ca-from: linkerd/linkerd-ca
+    cert-manager.io/inject-ca-from: linkerd/linkerd-ca
 webhooks:
 - name: linkerd-proxy-injector.linkerd.io
   clientConfig:
