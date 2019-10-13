@@ -1,6 +1,6 @@
 # This daemonset ensures that the registry's (public) name is mapped
 # to its service's ClusterIP on each node.
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: registry-clusterip-injector-daemonset

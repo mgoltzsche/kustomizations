@@ -10,6 +10,6 @@ vars:
   objref:
     kind: Deployment
     name: registry-test
-    apiVersion: extensions/v1beta1
+    apiVersion: apps/v1
   fieldref:
     fieldpath: metadata.name

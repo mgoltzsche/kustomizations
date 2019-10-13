@@ -31,6 +31,33 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: linkerd-destination
+  namespace: linkerd
+spec:
+  template:
+    spec:
+      containers:
+      - name: linkerd-proxy
+        env:
+        - name: LINKERD2_PROXY_IDENTITY_TRUST_ANCHORS
+          value: null
+          valueFrom:
+            secretKeyRef:
+              key: ca.crt
+              name: linkerd-identity-issuer-tls
+        # Added to enforce update
+        volumeMounts:
+        - name: identity-ca
+          subPath: ca.crt
+          mountPath: /etc/ssl/certs/ca-identity-cert.pem
+      volumes:
+      - name: identity-ca
+        secret:
+          secretName: linkerd-identity-issuer-tls
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: linkerd-controller
   namespace: linkerd
 spec:

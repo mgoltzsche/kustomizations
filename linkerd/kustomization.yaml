@@ -4,7 +4,7 @@ generators:
 resources:
 - namespace.yaml
 - certificates.yaml
-- linkerd-configmap-tpl.yaml
+- linkerd-config-tpl.yaml
 - cert-sync-rbac.yaml
 - cert-sync.yaml
 

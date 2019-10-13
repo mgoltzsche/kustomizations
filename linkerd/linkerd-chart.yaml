@@ -3,7 +3,7 @@ kind: ChartRenderer
 metadata:
   name: linkerd
   namespace: linkerd
-chart: github.com/linkerd/linkerd2//charts/linkerd2?ref=stable-2.5.0
+chart: github.com/linkerd/linkerd2//charts/linkerd2?ref=stable-2.6.0
 # TODO: add cert file values - not feasible declaratively :(
 valueFiles:
 - values-ha.yaml

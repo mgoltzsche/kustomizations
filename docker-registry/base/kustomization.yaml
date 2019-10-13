@@ -55,14 +55,14 @@ vars:
   objref:
     kind: Deployment
     name: registry
-    apiVersion: extensions/v1beta1
+    apiVersion: apps/v1
   fieldref:
     fieldpath: metadata.name
 - name: CREDENTIAL_INIT_DEPLOYMENT_NAME
   objref:
     kind: Deployment
     name: registry-credential-initializer
-    apiVersion: extensions/v1beta1
+    apiVersion: apps/v1
   fieldref:
     fieldpath: metadata.name
 - name: CREDENTIAL_ROTATOR_CRON_NAME

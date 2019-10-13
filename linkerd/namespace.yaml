@@ -5,4 +5,5 @@ metadata:
   annotations:
     linkerd.io/inject: disabled
   labels:
+    config.linkerd.io/admission-webhooks: disabled
     linkerd.io/is-control-plane: "true"

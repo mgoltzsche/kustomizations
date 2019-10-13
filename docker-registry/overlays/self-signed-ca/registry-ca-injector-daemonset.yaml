@@ -1,7 +1,7 @@
 # Installs the CA cert on each node.
 # Tested successfully using CRI-O as container runtime
 # on a centos:7-based host.
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: registry-ca-injector-daemonset

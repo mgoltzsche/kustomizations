@@ -1,4 +1,0 @@
-bases:
-- ../base
-patchesStrategicMerge:
-- cni-config-with-version.yaml
