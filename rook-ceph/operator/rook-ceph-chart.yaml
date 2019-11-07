@@ -1,0 +1,10 @@
+apiVersion: helm.kustomize.mgoltzsche.github.com/v1
+kind: ChartRenderer
+metadata:
+  name: rook-ceph
+  namespace: rook-ceph
+repository: https://charts.rook.io/release
+chart: rook-ceph
+version: 1.1.6
+valueFiles:
+  - values.yaml

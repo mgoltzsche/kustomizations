@@ -1,0 +1,7 @@
+generators:
+  - rook-ceph-chart.yaml
+
+resources:
+  - namespace.yaml
+
+namespace: rook-ceph

@@ -1,0 +1,10 @@
+resources:
+  - ../../operator
+  - cluster.yaml
+  #- storageclass-rbd.yaml
+  - storageclass-cephfs.yaml
+  - toolbox-deployment.yaml
+
+images:
+- name: rook/ceph
+  newTag: v1.1.6
