@@ -8,7 +8,6 @@ resources:
   - certificate.yaml
   - credential-rotator-serviceaccount.yaml
   - credential-rotator-cronjob.yaml
-  - credential-initializer-deployment.yaml
   - deployment.yaml
   - service.yaml
   - registry-clusterip-injector-daemonset.yaml
@@ -54,21 +53,14 @@ vars:
 - name: DEPLOYMENT_NAME
   objref:
     kind: Deployment
-    name: registry
+    name: registry-deployment
     apiVersion: apps/v1
   fieldref:
     fieldpath: metadata.name
-- name: CREDENTIAL_INIT_DEPLOYMENT_NAME
-  objref:
-    kind: Deployment
-    name: registry-credential-initializer
-    apiVersion: apps/v1
-  fieldref:
-    fieldpath: metadata.name
-- name: CREDENTIAL_ROTATOR_CRON_NAME
+- name: CRON_NAME
   objref:
     kind: CronJob
-    name: registry-credential-rotator
+    name: registry-credential-rotator-cron
     apiVersion: batch/v1beta1
   fieldref:
     fieldpath: metadata.name

@@ -1,0 +1,8 @@
+bases:
+- ../self-signed-ca
+
+resources:
+- cephfs-pvc.yaml
+
+patchesStrategicMerge:
+- deployment.yaml

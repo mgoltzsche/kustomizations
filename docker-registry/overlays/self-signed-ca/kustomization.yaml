@@ -1,5 +1,5 @@
 bases:
-- ../test
+- ../../base
 
 resources:
 - registry-ca-issuer.yaml
