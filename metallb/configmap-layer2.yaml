@@ -1,0 +1,13 @@
+# see https://metallb.universe.tf/configuration/
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: metallb
+  name: config
+data:
+  config: |
+    address-pools:
+    - name: default
+      protocol: layer2
+      addresses:
+      - 10.23.0.3-10.23.0.4

@@ -1,0 +1,5 @@
+namespace: metallb-system
+
+resources:
+  - github.com/danderson/metallb//manifests?ref=v0.8.3
+  - configmap-layer2.yaml 
