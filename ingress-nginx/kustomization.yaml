@@ -1,0 +1,18 @@
+bases:
+- github.com/kubernetes/ingress-nginx/deploy/cloud-generic?ref=nginx-0.25.1
+- github.com/kubernetes/ingress-nginx/deploy/cluster-wide?ref=nginx-0.25.1
+
+namespace: ingress-nginx
+
+resources:
+- namespace.yaml
+
+patchesStrategicMerge:
+#- service-nodeport.yaml
+- service-loadbalancer.yaml
+
+images:
+- name: quay.io/kubernetes-ingress-controller/nginx-ingress-controller
+  newName: quay.io/kubernetes-ingress-controller/nginx-ingress-controller
+  # 0.25.1 may result in https://github.com/kubernetes/ingress-nginx/issues/4311
+  newTag: 0.24.1
