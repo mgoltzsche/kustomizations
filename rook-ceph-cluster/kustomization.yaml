@@ -1,7 +1,6 @@
 resources:
-  - ../../operator
   - cluster.yaml
-  #- storageclass-rbd.yaml
+  - storageclass-rbd.yaml
   - storageclass-cephfs.yaml
   - toolbox-deployment.yaml
 
