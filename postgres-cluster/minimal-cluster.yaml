@@ -1,0 +1,21 @@
+# see https://github.com/zalando/postgres-operator/blob/v1.2.0/manifests/minimal-postgres-manifest.yaml
+apiVersion: "acid.zalan.do/v1"
+kind: postgresql
+metadata:
+  name: core-cluster
+  #namespace: default
+spec:
+  teamId: "core"
+  volume:
+    size: 500Mi
+    storageClass: csi-rbd
+  numberOfInstances: 1
+  users:
+    zalando:  # database owner
+    - superuser
+    - createdb
+    foo_user: []  # role for application foo
+  databases:
+    foo: zalando  # dbname: owner
+  postgresql:
+    version: "10"
