@@ -1,0 +1,10 @@
+apiVersion: helm.kustomize.mgoltzsche.github.com/v1
+kind: ChartRenderer
+metadata:
+  name: hydra-example-idp
+  namespace: apps
+repository: https://k8s.ory.sh/helm/charts
+chart: example-idp
+version: 0.0.46
+valueFiles:
+- values.yaml

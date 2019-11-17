@@ -1,6 +1,5 @@
 resources:
-  #- namespace.yaml
-  - minimal-cluster.yaml
+  - namespace.yaml
+  - pg-cluster.yaml
 
-#namespace: postgres-cluster
-namespace: postgres-operator
+namespace: apps

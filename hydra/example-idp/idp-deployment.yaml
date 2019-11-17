@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-idp
+  namespace: apps
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: example-idp
+        app.kubernetes.io/instance: example-idp
+    spec:
+      containers:
+      - name: example-idp
+        image: oryd/hydra-login-consent-node:v1.0.0
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: HYDRA_ADMIN_URL
+          value: https://$(ADMIN_HOSTNAME)/
+        - name: HYDRA_PUBLIC_URL
+          value: https://$(PUBLIC_HOSTNAME)/
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http

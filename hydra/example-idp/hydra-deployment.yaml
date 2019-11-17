@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hydra
+spec:
+  template:
+    spec:
+      containers:
+      - name: hydra
+        env:
+        # See https://github.com/ory/hydra/blob/master/docs/config.yaml
+        - name: URLS_LOGIN
+          value: https://$(IDP_HOSTNAME)/login
+        - name: URLS_CONSENT
+          value: https://$(IDP_HOSTNAME)/consent
+        - name: URLS_LOGOUT
+          value: https://$(IDP_HOSTNAME)/logout

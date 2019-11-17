@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hydra
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: hydra
+        image: oryd/hydra:v1.0.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - serve
+        - all
+        - --config
+        - /etc/config/config.yaml
+        command:
+        - hydra
+        env:
+        # See https://github.com/ory/hydra/blob/master/docs/config.yaml
+        - name: URLS_SELF_ISSUER
+          value: https://$(PUBLIC_HOSTNAME)/
+        - name: DSN
+          valueFrom:
+            secretKeyRef:
+              key: dsn
+              name: hydra
+        - name: SECRETS_SYSTEM
+          valueFrom:
+            secretKeyRef:
+              key: secretsSystem
+              name: hydra
+        - name: SECRETS_COOKIE
+          valueFrom:
+            secretKeyRef:
+              key: secretsCookie
+              name: hydra
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /health/alive
+            port: http-admin
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        ports:
+        - containerPort: 4444
+          name: http-public
+          protocol: TCP
+        - containerPort: 4445
+          name: http-admin
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /health/ready
+            port: http-admin
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources: {}
+        volumeMounts:
+        - mountPath: /etc/config
+          name: hydra-config-volume
+          readOnly: true
+      initContainers:
+      - args:
+        - migrate
+        - sql
+        - -e
+        - --yes
+        - --config
+        - /etc/config/config.yaml
+        command:
+        - hydra
+        env:
+        - name: DSN
+          valueFrom:
+            secretKeyRef:
+              key: dsn
+              name: hydra
+        image: oryd/hydra:v1.0.0
+        imagePullPolicy: IfNotPresent
+        name: hydra-automigrate
+        volumeMounts:
+        - mountPath: /etc/config
+          name: hydra-config-volume
+          readOnly: true
+      volumes:
+      - configMap:
+          name: hydra
+        name: hydra-config-volume

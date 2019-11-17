@@ -1,0 +1,22 @@
+bases:
+- ../hydra
+
+resources:
+- idp-deployment.yaml
+- service.yaml
+- ingress.yaml
+#- idp-service-test.yaml
+
+patchesStrategicMerge:
+- hydra-deployment.yaml
+
+namespace: apps
+
+vars:
+- name: IDP_HOSTNAME
+  objref:
+    apiVersion: networking.k8s.io/v1beta1
+    kind: Ingress
+    name: example-idp
+  fieldref:
+    fieldpath: metadata.annotations.hostname

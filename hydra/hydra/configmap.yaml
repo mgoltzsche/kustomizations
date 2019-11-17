@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hydra
+data:
+  # See https://github.com/ory/hydra/blob/master/docs/config.yaml
+  # Can be overwritten by env vars
+  config.yaml: |
+    serve:
+      admin:
+        port: 4445
+        access_log:
+          disable_for_health: true
+      public:
+        port: 4444
+        access_log:
+          disable_for_health: true
+      tls:
+        allow_termination_from:
+        - 127.0.0.0/8

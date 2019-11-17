@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: hydra-public
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-ca-issuer
+    hostname: public.hydra.example.org
+spec:
+  rules:
+  - host: $(PUBLIC_HOSTNAME)
+    http:
+      paths:
+      - backend:
+          serviceName: hydra-public
+          servicePort: http
+        path: /
+  tls:
+  - hosts:
+    - $(PUBLIC_HOSTNAME)
+    secretName: hydra-public-tls

@@ -1,0 +1,34 @@
+#generators:
+#  - hydra-chart.yaml
+
+resources:
+  - configmap.yaml
+  - deployment.yaml
+  - secret-sync-rbac.yaml
+  - secret-sync.yaml
+#  - maester-rolebinding-ns-fix.yaml
+  - hydra-public-service.yaml
+  - hydra-public-ingress.yaml
+  - hydra-admin-service.yaml
+  - hydra-admin-ingress.yaml
+
+namespace: apps
+
+vars:
+- name: PUBLIC_HOSTNAME
+  objref:
+    apiVersion: networking.k8s.io/v1beta1
+    kind: Ingress
+    name: hydra-public
+  fieldref:
+    fieldpath: metadata.annotations.hostname
+- name: ADMIN_HOSTNAME
+  objref:
+    apiVersion: networking.k8s.io/v1beta1
+    kind: Ingress
+    name: hydra-admin
+  fieldref:
+    fieldpath: metadata.annotations.hostname
+
+configurations:
+- kustomizeconfig/certificate.yaml

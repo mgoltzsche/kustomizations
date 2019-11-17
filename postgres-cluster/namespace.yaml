@@ -1,4 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: postgres-cluster
+  name: apps
+  annotations:
+    # TODO: run pg cluster without linkerd proxy (need for now since apps/SSO are deployed in same namespace as long as DB secret is not available within another one)
+    linkerd.io/inject: enabled

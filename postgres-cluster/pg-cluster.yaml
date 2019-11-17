@@ -2,20 +2,22 @@
 apiVersion: "acid.zalan.do/v1"
 kind: postgresql
 metadata:
-  name: core-cluster
-  #namespace: default
+  name: pg-cluster
+  namespace: apps
 spec:
-  teamId: "core"
+  teamId: "pg"
   volume:
     size: 500Mi
     storageClass: csi-rbd
   numberOfInstances: 1
   users:
-    zalando:  # database owner
+    coreadmin:  # database owner
     - superuser
     - createdb
-    foo_user: []  # role for application foo
+    hydra: []  # role for application hydra
   databases:
-    foo: zalando  # dbname: owner
+    hydra: hydra  # dbname: owner
+  enableMasterLoadBalancer: false
+  enableReplicaLoadBalancer: false
   postgresql:
-    version: "10"
+    version: "11"

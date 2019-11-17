@@ -1,0 +1,17 @@
+apiVersion: helm.kustomize.mgoltzsche.github.com/v1
+kind: ChartRenderer
+metadata:
+  name: hydra
+  namespace: apps
+repository: https://k8s.ory.sh/helm/charts
+chart: hydra
+version: 0.0.46
+valueFiles:
+- values.yaml
+exclude:
+  - apiVersion: v1
+    kind: Secret
+    name: hydra
+  - apiVersion: rbac.authorization.k8s.io/v1beta1
+    kind: RoleBinding
+    name: hydra-maester-role-binding-apps
