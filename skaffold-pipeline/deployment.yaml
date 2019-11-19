@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: mydeployment
+  name: mydeployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mydeployment
+  template:
+    metadata:
+      labels:
+        app: mydeployment
+    spec:
+      containers:
+      - image: myregistry/myimage
+        name: example
+        readinessProbe:
+          exec:
+            command:
+              - cat
+              - /tmp/health
+          initialDelaySeconds: 1
+          periodSeconds: 3

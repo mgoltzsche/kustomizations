@@ -1,0 +1,8 @@
+apiVersion: helm.kustomize.mgoltzsche.github.com/v1
+kind: ChartRenderer
+metadata:
+  name: tekton
+  namespace: tekton
+repository: https://storage.googleapis.com/chartmuseum.jenkins-x.io
+chart: tekton
+version: 0.0.47

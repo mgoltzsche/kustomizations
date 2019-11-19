@@ -9,6 +9,12 @@ nameReference:
     kind: Certificate
   - path: spec/ca/secretName
     kind: Issuer
+  - path: spec/tls/secretName
+    kind: Ingress
+- kind: Service
+  fieldSpecs:
+  - path: spec/rules/http/paths/backend/serviceName
+    kind: Ingress
 
 varReference:
 - kind: Certificate

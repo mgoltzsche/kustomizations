@@ -14,4 +14,6 @@ k8spkg apply -k cert-manager-issuer --enable_alpha_plugins --name cert-manager-i
 k8spkg apply -k linkerd --name linkerd --enable_alpha_plugins $TIMEOUT # service mesh with TLS enforced
 k8spkg apply -k metallb --name metallb $TIMEOUT # bare-metal service load balancer
 k8spkg apply -k ingress-nginx --name ingress-nginx $TIMEOUT # Ingress support (requires load balancer)
-k8spkg apply -k hydra/hydra --name hydra $TIMEOUT # SSO
+#k8spkg apply -k hydra/hydra --name hydra $TIMEOUT # SSO
+k8spkg apply -k docker-registry/overlays/with-namespace --name docker-registry $TIMEOUT
+k8spkg apply -k tekton --name tekton --enable_alpha_plugins $TIMEOUT

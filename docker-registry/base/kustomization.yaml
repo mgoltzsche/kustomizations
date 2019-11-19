@@ -11,7 +11,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - registry-clusterip-injector-daemonset.yaml
-  #- ingress.yaml
+  - ingress.yaml
 
 configMapGenerator:
 - name: registry-nginx-conf

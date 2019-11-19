@@ -1,0 +1,23 @@
+apiVersion: skaffold/v1
+kind: Config
+metadata:
+  name: skaffold-pipeline
+build:
+  artifacts:
+  - image: registry.example.org/myimage
+deploy:
+  kustomize: {}
+profiles:
+- name: oncluster
+  build:
+    artifacts:
+    - image: registry.example.org/myimage-pipeline
+      context: .
+      kaniko:
+        buildContext:
+          #gcsBucket: skaffold-kaniko
+          localDir: {}
+    tagPolicy:
+      gitCommit: {}
+    cluster:
+      pullSecretName: registry-deployment-push-credentials

@@ -2,19 +2,16 @@ apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: registry-ingress
-  annotations:
-    kubernetes.io/ingress.class: "traefik"
-    ingress.kubernetes.io/rewrite-target: /
 spec:
-  tls:
-  - hosts:
-      - docker.example.org
-  - secretName: registry-tls
   rules:
-  - host: docker.example.org
+  - host: $(COMMON_NAME)
     http:
       paths:
       - backend:
           serviceName: registry
-          servicePort: 5000
+          servicePort: http
         path: /
+  tls:
+  - hosts:
+      - $(COMMON_NAME)
+    secretName: $(CERT_SECRET_NAME)
