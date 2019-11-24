@@ -1,5 +1,5 @@
 bases:
-- ../cephfs-storage
+- ../self-signed-ca
 
 namespace: build
 

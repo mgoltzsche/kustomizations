@@ -8,6 +8,7 @@ resources:
   - certificate.yaml
   - credential-rotator-serviceaccount.yaml
   - credential-rotator-cronjob.yaml
+  - registry-pvc.yaml
   - deployment.yaml
   - service.yaml
   - registry-clusterip-injector-daemonset.yaml

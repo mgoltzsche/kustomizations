@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: registry-cephfs-pvc
+  name: registry-pvc
 spec:
   accessModes:
   - ReadWriteMany

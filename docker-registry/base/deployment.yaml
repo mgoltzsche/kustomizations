@@ -67,7 +67,9 @@ spec:
           mountPath: /etc/nginx/auth
       volumes:
       - name: images
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: registry-pvc
+          readOnly: false
       - name: nginx-conf
         configMap:
           name: registry-nginx-conf

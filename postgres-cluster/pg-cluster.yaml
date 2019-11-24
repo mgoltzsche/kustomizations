@@ -5,10 +5,10 @@ metadata:
   name: pg-cluster
   namespace: apps
 spec:
-  teamId: "pg"
+  teamId: pg
   volume:
     size: 500Mi
-    storageClass: csi-rbd
+    #storageClass: csi-rbd
   numberOfInstances: 1
   users:
     coreadmin:  # database owner
@@ -21,3 +21,5 @@ spec:
   enableReplicaLoadBalancer: false
   postgresql:
     version: "11"
+  tls:
+    secretName: $(PG_CLUSTER)-tls

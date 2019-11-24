@@ -1,0 +1,18 @@
+bases:
+- ../../base
+
+resources:
+- certificate.yaml
+- ingress.yaml
+
+configurations:
+- kustomizeconfig.yaml
+
+vars:
+- name: TEKTON_DASHBOARD_HOST
+  objref:
+    kind: Certificate
+    name: tekton-dashboard-cert
+    apiVersion: cert-manager.io/v1alpha2
+  fieldref:
+    fieldpath: spec.commonName

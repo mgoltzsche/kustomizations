@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: pg-cluster-cert
+spec:
+  secretName: $(PG_CLUSTER)-tls
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  commonName: $(PG_CLUSTER)
+  dnsNames:
+  - $(PG_CLUSTER)
+  - $(PG_CLUSTER).$(PG_CLUSTER_NAMESPACE).svc
+  issuerRef:
+    # Users should use their own namespace's user here
+    name: cluster-ca-issuer
+    kind: ClusterIssuer

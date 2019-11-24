@@ -1,0 +1,4 @@
+bases:
+- ../ingress
+
+namespace: tekton-pipelines

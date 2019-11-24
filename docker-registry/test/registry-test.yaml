@@ -4,13 +4,7 @@ metadata:
   name: registry-test
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      app: $(REGISTRY_TEST_DEPLOYMENT)
   template:
-    metadata:
-      labels:
-        app: $(REGISTRY_TEST_DEPLOYMENT)
     spec:
       shareProcessNamespace: true
       containers:
@@ -19,7 +13,7 @@ spec:
           privileged: true
           runAsUser: 100000
           runAsGroup: 100000
-        image: mgoltzsche/podman:1.5
+        image: mgoltzsche/podman:1.6.2
         command: ["/bin/sh", "-c"]
         args:
         - |
@@ -34,7 +28,7 @@ spec:
 
             (
               CTR="$(buildah from docker.io/library/alpine:3.10)" &&
-              buildah config --cmd "echo hello world" "$CTR" &&
+              buildah config --cmd "sh -c 'set -x; echo hello world; sleep 120'" "$CTR" &&
               IMGID="$(buildah commit "$CTR" registry-test:latest)" &&
               buildah push "$IMGID" docker://${SERVICE_NAME}.${SERVICE_NAMESPACE}.svc/registry-test:latest &&
               echo push-succeeded > /shared/pull-test-trigger
@@ -44,9 +38,11 @@ spec:
             kill -9 $TAILPID
         env:
         - name: SERVICE_NAMESPACE
-          value: $(SERVICE_NAMESPACE)
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         - name: SERVICE_NAME
-          value: $(SERVICE_NAME)
+          value: registry
         - name: HOME
           value: /podman
         readinessProbe:
@@ -89,31 +85,29 @@ spec:
             (
             while [ ! -f /shared/pull-test-trigger ]; do sleep 3; done
             set -ex
-            JOB_NAME=registry-pull-test-$(date +%Y%m%d%H%M%S)
+            POD_NAME=registry-pull-test-$(date +%Y%m%d%H%M%S)
             STATUS=0
             (
             set -e
             kubectl apply -n "$SERVICE_NAMESPACE" -f - <<-EOF
-              apiVersion: batch/v1
-              kind: Job
+              apiVersion: v1
+              kind: Pod
               metadata:
-                name: $JOB_NAME
+                name: $POD_NAME
                 namespace: ${SERVICE_NAMESPACE}
               spec:
-                template:
-                  spec:
-                    containers:
-                    - name: registry-pull-test
-                      image: ${SERVICE_NAME}.${SERVICE_NAMESPACE}.svc/registry-test:latest
-                      imagePullPolicy: Always
-                    restartPolicy: Never
-                    imagePullSecrets:
-                    - name: ${DEPLOYMENT_NAME}-pull-credentials
+                containers:
+                - name: registry-pull-test
+                  image: ${SERVICE_NAME}.${SERVICE_NAMESPACE}.svc/registry-test:latest
+                  imagePullPolicy: Always
+                restartPolicy: Never
+                imagePullSecrets:
+                - name: ${REGISTRY_PULL_SECRET}
             EOF
-            kubectl wait --for condition=complete -n "$SERVICE_NAMESPACE" "job/$JOB_NAME" --timeout 2m ||
-               (kubectl describe -n "$SERVICE_NAMESPACE" "job/$JOB_NAME" | tail -n5 1>&2; false)
+            kubectl wait --for condition=ready -n "$SERVICE_NAMESPACE" "pod/$POD_NAME" --timeout 2m ||
+               (kubectl describe -n "$SERVICE_NAMESPACE" "pod/$POD_NAME" | tail -n5 1>&2; false)
             ) 2>>/tmp/testlog || STATUS=1
-            kubectl delete -n "$SERVICE_NAMESPACE" "job/$JOB_NAME" || (sleep 10; false)
+            kubectl delete -n "$SERVICE_NAMESPACE" "pod/$POD_NAME" || (sleep 10; false)
             [ $STATUS -eq 0 ] || (sleep 10; false)
             kill -9 $TAILPID
             echo success > /tmp/testlog
@@ -123,11 +117,13 @@ spec:
             kubectl delete -n "$SERVICE_NAMESPACE" deployment/$REGISTRY_TEST_DEPLOYMENT
         env:
         - name: SERVICE_NAMESPACE
-          value: $(SERVICE_NAMESPACE)
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         - name: SERVICE_NAME
-          value: $(SERVICE_NAME)
-        - name: DEPLOYMENT_NAME
-          value: $(DEPLOYMENT_NAME)
+          value: registry
+        - name: REGISTRY_PULL_SECRET
+          value: registry-deployment-pull-credentials
         - name: REGISTRY_TEST_DEPLOYMENT
           value: $(REGISTRY_TEST_DEPLOYMENT)
         readinessProbe:
@@ -143,7 +139,7 @@ spec:
       volumes:
       - name: auth
         secret:
-          secretName: $(DEPLOYMENT_NAME)-push-credentials
+          secretName: registry-deployment-push-credentials
       - name: storage
         emptyDir: {}
       - name: shared

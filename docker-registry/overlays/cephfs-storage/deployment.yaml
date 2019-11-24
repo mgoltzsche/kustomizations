@@ -4,11 +4,3 @@ metadata:
   name: registry-deployment
 spec:
   replicas: 2
-  template:
-    spec:
-      volumes:
-      - name: images
-        emptyDir: null
-        persistentVolumeClaim:
-          claimName: registry-cephfs-pvc
-          readOnly: false

@@ -1,5 +1,25 @@
 resources:
   - namespace.yaml
+  - certificate.yaml
   - pg-cluster.yaml
 
 namespace: apps
+
+vars:
+- name: PG_CLUSTER_NAMESPACE
+  objref:
+    apiVersion: acid.zalan.do/v1
+    kind: postgresql
+    name: pg-cluster
+  fieldref:
+    fieldpath: metadata.namespace
+- name: PG_CLUSTER
+  objref:
+    apiVersion: acid.zalan.do/v1
+    kind: postgresql
+    name: pg-cluster
+  fieldref:
+    fieldpath: metadata.name
+
+configurations:
+- kustomizeconfig/certificate.yaml

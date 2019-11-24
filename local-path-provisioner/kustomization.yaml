@@ -1,0 +1,7 @@
+#namespace: operators
+
+bases:
+  - github.com/rancher/local-path-provisioner/deploy # ?ref=v0.0.11 + kustomize support
+
+patchesStrategicMerge:
+  - storageclass.yaml

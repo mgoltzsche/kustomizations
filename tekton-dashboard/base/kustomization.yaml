@@ -1,0 +1,10 @@
+resources:
+# copied from https://github.com/tektoncd/dashboard/blob/v0.1.1/config/release/gcr-tekton-dashboard.yaml
+- crd.yaml
+- serviceaccount.yaml
+- clusterrole.yaml
+- clusterrolebinding.yaml
+- deployment.yaml
+- service.yaml
+- example-pipeline.yaml
+- example-task.yaml
