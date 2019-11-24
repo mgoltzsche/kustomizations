@@ -7,8 +7,7 @@ metadata:
 spec:
   params:
   - name: url
-    value: |
-      git@github.com:mgoltzsche/kustomizations.git
+    value: https://github.com/mgoltzsche/kustomizations.git
   type: git
 status: {}
 ---
@@ -32,28 +31,33 @@ spec:
       targetPath: ""
       type: git
   steps:
-  - args:
+  - name: run-build
+    image: gcr.io/k8s-skaffold/skaffold:v1.0.1
+    command:
+    - skaffold
+    - build
+    args:
+    - -v=debug
     - --filename
     - skaffold.yaml
     - --profile
     - oncluster
     - --file-output
     - build.out
-    command:
-    - skaffold
-    - build
-    env:
-    - name: GOOGLE_APPLICATION_CREDENTIALS
-      value: /secret/kaniko-secret
-    image: gcr.io/k8s-skaffold/skaffold:v1.0.0
-    name: run-build
+#    env:
+#    - name: GOOGLE_APPLICATION_CREDENTIALS
+#      value: /secret/kaniko-secret
     resources: {}
     volumeMounts:
-    - mountPath: /secret
-      name: kaniko-secret
-    workingDir: /workspace/source
+    - mountPath: /tekton/.docker/config.json
+      name: registry-auth
+      subPath: .dockerconfigjson
+    - mountPath: /etc/ssl/certs/ca-cert-registry.pem
+      name: registry-auth
+      subPath: ca.crt
+    workingDir: /workspace/source/skaffold-pipeline
   volumes:
-  - name: kaniko-secret
+  - name: registry-auth
     secret:
       secretName: registry-deployment-push-credentials
 ---
@@ -71,18 +75,18 @@ spec:
       targetPath: ""
       type: git
   steps:
-  - args:
+  - name: run-deploy
+    image: gcr.io/k8s-skaffold/skaffold:v1.0.1
+    command:
+    - skaffold
+    - deploy
+    args:
     - --filename
     - skaffold.yaml
     - --build-artifacts
     - build.out
-    command:
-    - skaffold
-    - deploy
-    image: gcr.io/k8s-skaffold/skaffold:v1.0.0
-    name: run-deploy
-    resources: {}
     workingDir: /workspace/source
+    resources: {}
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: Pipeline
@@ -115,4 +119,18 @@ spec:
     taskRef:
       name: skaffold-deploy-0
 status: {}
+
 ---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineRun
+metadata:
+  name: skaffold-pipeline-run
+  namespace: build
+spec:
+  serviceAccountName: build-pipeline
+  pipelineRef:
+    name: skaffold-pipeline
+  resources:
+    - name: source-repo
+      resourceRef:
+        name: source-git

@@ -13,11 +13,14 @@ profiles:
     artifacts:
     - image: registry.example.org/myimage-pipeline
       context: .
-      kaniko:
-        buildContext:
+#      kaniko:
+#        buildContext:
           #gcsBucket: skaffold-kaniko
-          localDir: {}
+#          localDir: {}
     tagPolicy:
       gitCommit: {}
     cluster:
-      pullSecretName: registry-deployment-push-credentials
+      #pullSecretName: registry-deployment-push-credentials
+      namespace: build
+      dockerConfig:
+        secretName: registry-deployment-push-credentials
