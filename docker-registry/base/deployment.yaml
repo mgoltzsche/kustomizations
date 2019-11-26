@@ -34,6 +34,8 @@ spec:
         env:
         - name: REGISTRY_HTTP_ADDR
           value: 127.0.0.1:5000
+        - name: REGISTRY_HTTP_RELATIVEURLS # required when behind proxy
+          value: "true"
 #        - name: REGISTRY_AUTH
 #          value: "htpasswd"
 #        - name: REGISTRY_AUTH_HTPASSWD_REALM
