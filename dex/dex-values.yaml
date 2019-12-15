@@ -1,0 +1,67 @@
+
+global:
+  deployEnv: prod
+
+issuer: asdf
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+  path: /
+  hosts:
+    - dex.example.org
+  tls:
+    - secretName: cert-auth-dex
+      hosts:
+        - dex.example.org
+
+serviceAccount:
+  create: true
+  name: dex-auth-sa
+
+config: |
+  issuer: https://dex.example.org/
+  storage: # https://github.com/dexidp/dex/issues/798
+    type: sqlite3
+    config:
+      file: /var/dex.db
+  web:
+    http: 0.0.0.0:5556
+  frontend:
+    theme: "coreos"
+    issuer: "Example Co"
+    issuerUrl: "https://example.com"
+    logoUrl: https://example.com/images/logo-250x25.png
+  expiry:
+    signingKeys: "6h"
+    idTokens: "24h"
+  logger:
+    level: debug
+    format: json
+  oauth2:
+    responseTypes: ["code", "token", "id_token"]
+    skipApprovalScreen: true
+  connectors:
+  - type: github
+    id: github
+    name: GitHub
+    config:
+      clientID: $GITHUB_CLIENT_ID
+      clientSecret: $GITHUB_CLIENT_SECRET
+      redirectURI: https://dex.example.org/callback
+      orgs:
+      - name: super-org
+        teams:
+        - team-red
+  staticClients:
+  - id: dex-k8s-authenticator
+    name: dex-k8s-authenticator
+    secret: generatedLongRandomPhrase
+    redirectURIs:
+      - https://login.example.org/callback/
+
+envSecrets:
+  GITHUB_CLIENT_ID: "1ab2c3d4e5f6g7h8"
+  GITHUB_CLIENT_SECRET: "98z76y54x32w1"

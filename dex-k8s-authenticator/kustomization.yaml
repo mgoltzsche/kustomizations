@@ -1,0 +1,23 @@
+resources:
+- configmap.yaml
+- deployment.yaml
+- service.yaml
+- ingress.yaml
+
+namespace: dex
+
+vars:
+- name: K8S_AUTHENTICATOR_PUBLIC_NAME
+  objref:
+    apiVersion: extensions/v1beta1
+    kind: Ingress
+    name: dex-k8s-authenticator
+  fieldref:
+    fieldpath: metadata.labels.public-name
+- name: K8S_AUTHENTICATOR_DEPLOYMENT
+  objref:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: dex-k8s-authenticator
+  fieldref:
+    fieldpath: metadata.name

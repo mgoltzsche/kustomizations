@@ -1,0 +1,20 @@
+# Source: dex-k8s-authenticator/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex-k8s-authenticator
+data:
+  config.yaml: |-
+    listen: http://0.0.0.0:5555
+    web_path_prefix: /
+    debug: false
+    trusted_root_ca_file: /run/dex-tls/ca.crt
+    clusters:
+    - name: k8s-authenticator
+      client_id: k8s-authenticator
+      client_secret: pUBnBOY80SnXgjibTYM9ZWNzY2xreNGQok
+      issuer: https://dex.example.org/dex
+      #k8s_ca_uri: https://url-to-your-ca.crt
+      k8s_master_uri: https://kubernetes.cluster.local
+      redirect_uri: https://login.example.org/callback/k8s-authenticator
+      short_description: k8s-authenticator

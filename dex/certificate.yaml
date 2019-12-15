@@ -1,0 +1,20 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: dex-cert
+  namespace: dex
+spec:
+  secretName: dex-tls
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  commonName: dex.example.org
+  dnsNames:
+  - $(DEX_COMMON_NAME)
+  - dex
+  - dex.$(DEX_NAMESPACE)
+  - dex.$(DEX_NAMESPACE).svc
+  - dex.$(DEX_NAMESPACE).svc.cluster.local
+  issuerRef:
+    # Users should use their own namespace's user here
+    name: cluster-ca-issuer
+    kind: ClusterIssuer

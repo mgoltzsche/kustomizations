@@ -1,0 +1,41 @@
+resources:
+- namespace.yaml
+- github-client-secret.yaml
+- certificate.yaml
+- serviceaccount.yaml
+- deployment.yaml
+- service.yaml
+- ingress.yaml
+
+namespace: dex
+
+vars:
+- name: DEX_COMMON_NAME
+  objref:
+    apiVersion: cert-manager.io/v1alpha2
+    kind: Certificate
+    name: dex-cert
+  fieldref:
+    fieldpath: spec.commonName
+- name: DEX_NAMESPACE
+  objref:
+    apiVersion: v1
+    kind: Service
+    name: dex
+  fieldref:
+    fieldpath: metadata.namespace
+
+secretGenerator:
+# TODO: generate within cluster
+- name: github-client
+  envs:
+  # Requires vars client-id and client-secret
+  - github-client-secret.env
+
+configMapGenerator:
+- name: dex
+  files:
+    - config.yaml
+
+configurations:
+- kustomizeconfig.yaml

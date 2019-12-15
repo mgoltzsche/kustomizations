@@ -1,0 +1,60 @@
+# Source: dex-k8s-authenticator/templates/deployment.yaml
+# + proxy for dex' external name
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dex-k8s-authenticator
+  labels:
+    app: dex-k8s-authenticator
+    env: dev
+    chart: dex-k8s-authenticator-1.2.0
+    release: RELEASE-NAME
+    heritage: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dex-k8s-authenticator
+  template:
+    metadata:
+      labels:
+        app: dex-k8s-authenticator
+    spec:
+      hostAliases:
+      - ip: "127.0.0.1"
+        hostnames:
+        - "dex.example.org"
+      containers:
+      - name: dex-k8s-authenticator
+        image: "mintel/dex-k8s-authenticator:1.2.0"
+        imagePullPolicy: IfNotPresent
+        args: [ "--config", "config.yaml" ]
+        ports:
+        - name: http
+          containerPort: 5555
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        volumeMounts:
+        - name: config
+          subPath: config.yaml
+          mountPath: /app/config.yaml
+        - name: dex-tls
+          mountPath: /run/dex-tls
+      - name: dex-proxy
+        image: "alpine/socat:1.0.5"
+        imagePullPolicy: IfNotPresent
+        args: [ "tcp-l:443,fork,reuseaddr", "tcp:dex:443" ]
+      volumes:
+      - name: config
+        configMap:
+          name: dex-k8s-authenticator
+      - name: dex-tls
+        secret:
+          secretName: dex-tls

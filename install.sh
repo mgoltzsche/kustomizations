@@ -12,7 +12,7 @@ k8spkg apply -k cert-manager --enable_alpha_plugins --name cert-manager $TIMEOUT
 k8spkg apply -k cert-manager-issuer --enable_alpha_plugins --name cert-manager-issuer $TIMEOUT # cluster-ca-issuer
 k8spkg apply -k postgres-operator --name postgres-operator $TIMEOUT # postgres operator
 k8spkg apply -k postgres-cluster --name postgres-cluster $TIMEOUT # postgres cluster
-k8spkg apply -k linkerd --name linkerd --enable_alpha_plugins $TIMEOUT # service mesh with TLS enforced
+#k8spkg apply -k linkerd/base --name linkerd --enable_alpha_plugins $TIMEOUT # service mesh with TLS enforced
 k8spkg apply -k metallb --name metallb $TIMEOUT # bare-metal service load balancer
 k8spkg apply -k ingress-nginx --name ingress-nginx $TIMEOUT # Ingress support (requires load balancer)
 #k8spkg apply -k hydra/hydra --name hydra $TIMEOUT # SSO

@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: dex
+  namespace: dex
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+spec:
+  rules:
+  - host: $(DEX_COMMON_NAME)
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: dex
+          servicePort: 5556
+  tls:
+  - hosts:
+      - $(DEX_COMMON_NAME)
+    secretName: dex-tls

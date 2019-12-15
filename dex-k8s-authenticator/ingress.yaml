@@ -1,0 +1,24 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: dex-k8s-authenticator
+  labels:
+    # used as kustomization variable
+    public-name: login.example.org
+  annotations:
+    # indicates the issuer to use
+    cert-manager.io/cluster-issuer: cluster-ca-issuer
+spec:
+  rules:
+  - host: $(K8S_AUTHENTICATOR_PUBLIC_NAME)
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: dex-k8s-authenticator
+          servicePort: 5555
+  tls:
+  - hosts:
+    - $(K8S_AUTHENTICATOR_PUBLIC_NAME)
+    # secret created by cert-manager
+    secretName: $(K8S_AUTHENTICATOR_DEPLOYMENT)-tls

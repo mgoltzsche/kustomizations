@@ -1,0 +1,27 @@
+nameReference:
+- kind: Issuer
+  fieldSpecs:
+  - path: spec/issuerRef/name
+    kind: Certificate
+- kind: Secret
+  fieldSpecs:
+  - path: spec/secretName
+    kind: Certificate
+  - path: spec/ca/secretName
+    kind: Issuer
+  - path: spec/tls/secretName
+    kind: Ingress
+- kind: Service
+  fieldSpecs:
+  - path: spec/rules/http/paths/backend/serviceName
+    kind: Ingress
+
+varReference:
+- kind: Certificate
+  path: spec/commonName
+- kind: Certificate
+  path: spec/dnsNames
+- kind: Certificate
+  path: spec/secretName
+- kind: postgresql
+  path: spec/tls/secretName
