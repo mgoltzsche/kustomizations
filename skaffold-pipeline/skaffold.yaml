@@ -20,7 +20,7 @@ profiles:
     tagPolicy:
       gitCommit: {}
     cluster:
-      #pullSecretName: registry-deployment-push-credentials
       namespace: build
+      #pullSecretName: registry-deployment-push-credentials
       dockerConfig:
         secretName: registry-deployment-push-credentials

@@ -15,7 +15,7 @@ spec:
         app: mydeployment
     spec:
       containers:
-      - image: myregistry/myimage
+      - image: registry.example.org/myimage
         name: example
         readinessProbe:
           exec:

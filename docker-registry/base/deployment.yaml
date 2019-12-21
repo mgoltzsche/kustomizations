@@ -27,10 +27,10 @@ spec:
         volumeMounts:
         - name: images
           mountPath: /var/lib/registry
-#        - mountPath: /certs
-#          name: certs
-#        - mountPath: /auth
-#          name: auth
+#        - name: tls
+#          mountPath: /certs
+#        - name: auth
+#          mountPath: /auth
         env:
         - name: REGISTRY_HTTP_ADDR
           value: 127.0.0.1:5000
@@ -43,9 +43,9 @@ spec:
 #        - name: REGISTRY_AUTH_HTPASSWD_PATH
 #          value: /auth/htpasswd
 #        - name: REGISTRY_HTTP_TLS_CERTIFICATE
-#          value: /certs/fullchain.pem
+#          value: /certs/tls.crt
 #        - name: REGISTRY_HTTP_TLS_KEY
-#          value: /certs/privkey.pem
+#          value: /certs/tls.key
       - name: nginx
         image: nginx:1.17-alpine
         ports:
@@ -63,7 +63,7 @@ spec:
         volumeMounts:
         - name: nginx-conf
           mountPath: /etc/nginx
-        - name: cert
+        - name: tls
           mountPath: /etc/nginx/tls
         - name: auth
           mountPath: /etc/nginx/auth
@@ -75,7 +75,7 @@ spec:
       - name: nginx-conf
         configMap:
           name: registry-nginx-conf
-      - name: cert
+      - name: tls
         secret:
           secretName: $(CERT_SECRET_NAME)
       - name: auth

@@ -3,11 +3,11 @@ kind: PipelineResource
 metadata:
   creationTimestamp: null
   name: source-git
-  namespace: build
 spec:
   params:
   - name: url
-    value: https://github.com/mgoltzsche/kustomizations.git
+    value: |
+      git@github.com:mgoltzsche/kustomizations.git
   type: git
 status: {}
 ---
@@ -16,7 +16,6 @@ kind: Task
 metadata:
   creationTimestamp: null
   name: skaffold-build-0
-  namespace: build
 spec:
   inputs:
     resources:
@@ -31,42 +30,26 @@ spec:
       targetPath: ""
       type: git
   steps:
-  - name: run-build
-    image: gcr.io/k8s-skaffold/skaffold:v1.1.0
-    command:
-    - skaffold
-    - build
-    args:
-    - -v=debug
+  - args:
     - --filename
     - skaffold.yaml
     - --profile
     - oncluster
     - --file-output
     - build.out
-#    env:
-#    - name: GOOGLE_APPLICATION_CREDENTIALS
-#      value: /secret/kaniko-secret
+    command:
+    - skaffold
+    - build
+    image: gcr.io/k8s-skaffold/skaffold:v1.1.0
+    name: run-build
     resources: {}
-    volumeMounts:
-    - mountPath: /tekton/.docker/config.json
-      name: registry-auth
-      subPath: .dockerconfigjson
-    - mountPath: /etc/ssl/certs/ca-cert-registry.pem
-      name: registry-auth
-      subPath: ca.crt
-    workingDir: /workspace/source/skaffold-pipeline
-  volumes:
-  - name: registry-auth
-    secret:
-      secretName: registry-deployment-push-credentials
+    workingDir: /workspace/source
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
   creationTimestamp: null
   name: skaffold-deploy-0
-  namespace: build
 spec:
   inputs:
     resources:
@@ -75,25 +58,24 @@ spec:
       targetPath: ""
       type: git
   steps:
-  - name: run-deploy
-    image: gcr.io/k8s-skaffold/skaffold:v1.1.0
-    command:
-    - skaffold
-    - deploy
-    args:
+  - args:
     - --filename
     - skaffold.yaml
     - --build-artifacts
     - build.out
-    workingDir: /workspace/source
+    command:
+    - skaffold
+    - deploy
+    image: gcr.io/k8s-skaffold/skaffold:v1.1.0
+    name: run-deploy
     resources: {}
+    workingDir: /workspace/source
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: Pipeline
 metadata:
   creationTimestamp: null
   name: skaffold-pipeline
-  namespace: build
 spec:
   resources:
   - name: source-repo
@@ -119,18 +101,4 @@ spec:
     taskRef:
       name: skaffold-deploy-0
 status: {}
-
 ---
-apiVersion: tekton.dev/v1alpha1
-kind: PipelineRun
-metadata:
-  name: skaffold-pipeline-run
-  namespace: build
-spec:
-  serviceAccountName: build-pipeline
-  pipelineRef:
-    name: skaffold-pipeline
-  resources:
-    - name: source-repo
-      resourceRef:
-        name: source-git
