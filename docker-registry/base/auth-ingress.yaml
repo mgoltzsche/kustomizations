@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: registry-auth-ingress
+  labels:
+    app: registry-auth
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /auth
+spec:
+  rules:
+  - host: $(COMMON_NAME)
+    http:
+      paths:
+      - path: /auth/token
+        backend:
+          serviceName: docker-auth
+          servicePort: 5001
+  tls:
+  - hosts:
+      - $(COMMON_NAME)
+    secretName: $(CERT_SECRET_NAME)

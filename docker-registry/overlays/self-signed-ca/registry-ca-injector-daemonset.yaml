@@ -21,12 +21,13 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
         - |
+            [ "$(cat /ca-cert/ca.crt)" ] || (echo /ca-cert/ca.crt is empty >&2; false) || exit 1
             set -exo pipefail
             copyCaCert() {
               CERT_DIR=$1
               mkdir -p "$CERT_DIR"
               CERT_FILE=$CERT_DIR/registry-ca-${CERT_NAME}-$(md5sum /ca-cert/ca.crt | cut -d' ' -f1).crt
-              if [ ! -f $CERT_FILE ]; then
+              if [ ! -f "$CERT_FILE" ]; then
                 cp /ca-cert/ca.crt $CERT_DIR/.tmp-registry-ca-cert-$CERT_NAME
                 mv $CERT_DIR/.tmp-registry-ca-cert-$CERT_NAME $CERT_FILE
                 for OLDCERT in $(ls $CERT_DIR | grep -E "registry-ca-${CERT_NAME}-"'[0-9a-f]+\.crt' | grep -v $CERT_NAME); do
@@ -62,6 +63,8 @@ spec:
               echo '  manually to ensure the new CA certificate is registered.' >&2
             fi
 
+            echo Synced CA certificate on node $(cat /host/etc/hostname) > /tmp/synced
+
             (while true; do sleep 86400; done) &
             SLEEP_PID=$!
             terminate() {
@@ -72,6 +75,13 @@ spec:
             wait
         securityContext:
           privileged: true
+        readinessProbe:
+          exec:
+            command:
+              - /bin/cat
+              - /tmp/synced
+          initialDelaySeconds: 5
+          periodSeconds: 5
         resources:
           requests:
             cpu: "10m"

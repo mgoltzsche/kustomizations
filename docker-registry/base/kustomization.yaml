@@ -5,19 +5,24 @@
 # - https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 
 resources:
+  - docker-auth
   - certificate.yaml
   - credential-rotator-serviceaccount.yaml
   - credential-rotator-cronjob.yaml
   - registry-pvc.yaml
-  - deployment.yaml
-  - service.yaml
+  - registry-deployment.yaml
+  - registry-service.yaml
+  - registry-ingress.yaml
+  - auth-ingress.yaml
   - registry-clusterip-injector-daemonset.yaml
-  - ingress.yaml
 
 configMapGenerator:
 - name: registry-nginx-conf
   files:
     - nginx.conf
+#- name: registry-conf
+#  files:
+#    - config.yml
 
 configurations:
 - kustomizeconfig/certificate.yaml

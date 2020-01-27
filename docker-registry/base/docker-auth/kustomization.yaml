@@ -1,0 +1,9 @@
+resources:
+- auth-token-ca-certificate.yaml
+- auth-deployment.yaml
+- auth-service.yaml
+
+configMapGenerator:
+- name: registry-auth-config
+  files:
+  - auth_config.yml

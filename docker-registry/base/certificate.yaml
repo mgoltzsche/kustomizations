@@ -9,8 +9,9 @@ spec:
   commonName: registry.example.org
   dnsNames:
   - $(COMMON_NAME)
+  - auth.$(COMMON_NAME)
   - $(SERVICE_NAME)
-  #- $(SERVICE_NAME).$(SERVICE_NAMESPACE).svc
+  - $(SERVICE_NAME).$(SERVICE_NAMESPACE).svc
   issuerRef:
     name: registry-issuer
     kind: Issuer

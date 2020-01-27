@@ -7,9 +7,6 @@ resources:
 - registry-ca-injector-daemonset.yaml
 - registry-issuer.yaml
 
-patchesStrategicMerge:
-- certificate.yaml
-
 vars:
 - name: CA_CERT_SECRET_NAME
   objref:

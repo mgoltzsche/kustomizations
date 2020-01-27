@@ -1,0 +1,33 @@
+version: 0.1                                
+
+log:
+  fields:
+    service: registry
+
+storage:
+  cache:
+    blobdescriptor: inmemory
+  filesystem:
+    rootdirectory: /var/lib/registry
+  delete:
+    enabled: true
+
+http:
+  addr: 0.0.0.0:5000
+  headers:
+    X-Content-Type-Options: [nosniff]
+  relativeurls: true # required when behind proxy
+
+health:
+  storagedriver:
+    enabled: true
+    interval: 10s
+    threshold: 3
+
+auth:
+  token:
+    autoredirect: false
+    realm: "https://auth.registry.example.org/auth"
+    service: Docker Registry
+    issuer: Docker Registry Auth Service
+    rootcertbundle: "/root/certs/ca.crt"

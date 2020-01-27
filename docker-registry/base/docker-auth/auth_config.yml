@@ -1,0 +1,26 @@
+server:
+  addr: ":5001"
+
+token:
+  issuer: "Docker Registry Auth Service"  # Must match issuer in the Registry config.
+  expiration: 900
+  certificate: "/config/certs/tls.crt"
+  key: "/config/certs/tls.key"
+
+users:
+  admin:
+    password: $2y$05$LO.vzwpWC5LZGqThvEfznu8qhb5SGqvBSWY1J3yZ4AxtMRZ3kN5jC
+  test:
+    password: $2y$05$WuwBasGDAgr.QCbGIjKJaep4dhxeai9gNZdmBnQXqpKly57oNutya
+
+acl:
+  - match:
+      account: admin
+    actions:
+    - '*'
+    comment: Admin has full access to everything.
+  - match:
+      account: test
+    actions:
+    - pull
+    comment: User "test" can pull stuff.

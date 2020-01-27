@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-auth-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docker-auth
+  template:
+    metadata:
+      labels:
+        app: docker-auth
+    spec:
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: docker-auth
+        image: cesanta/docker_auth:1.5.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - --v=2
+        - --alsologtostderr
+        - /config/auth_config.yml
+        ports:
+        - name: docker-auth
+          containerPort: 5001
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5001
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5001
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: registry-auth-config
+          mountPath: /config
+        - name: registry-auth-secret
+          mountPath: /config/certs
+      volumes:
+      - name: registry-auth-config
+        configMap:
+          name: registry-auth-config
+      - name: registry-auth-secret
+        secret:
+          secretName: registry-auth-token-ca

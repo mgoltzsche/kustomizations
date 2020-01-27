@@ -33,7 +33,7 @@ spec:
             echo "$SVC_IP $NAMES" >> ${HOSTS_FILE}.tmp
             mv ${HOSTS_FILE}.tmp $HOSTS_FILE || cat ${HOSTS_FILE}.tmp > $HOSTS_FILE # workaround for containerized k8s where /etc/hosts is mounted
             rm -f ${HOSTS_FILE}.tmp
-            echo "Node's /etc/hosts updated: $SVC_IP $NAMES"
+            echo "Updated /etc/hosts on node $(cat /etc/hostname) with: $SVC_IP $NAMES" > /tmp/synced
             while true; do sleep 86400; done
         env:
         - name: SERVICE_NAMESPACE
@@ -42,6 +42,13 @@ spec:
           value: $(SERVICE_NAME)
         - name: COMMON_NAME
           value: $(COMMON_NAME)
+        readinessProbe:
+          exec:
+            command:
+              - /bin/cat
+              - /tmp/synced
+          initialDelaySeconds: 5
+          periodSeconds: 5
         volumeMounts:
         - name: etc-hosts
           mountPath: /host/etc

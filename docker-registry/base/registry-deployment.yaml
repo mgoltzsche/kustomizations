@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: $(DEPLOYMENT_NAME)
+  template:
+    metadata:
+      labels:
+        app: $(DEPLOYMENT_NAME)
+    spec:
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60
+      #hostAliases:
+      # Ensure the registry finds its own authentication endpoint but
+      # from outside the external authentication service is used
+      # TODO: map port
+      #- ip: "127.0.0.1"
+      #  hostnames:
+      #  - registry.example.org
+      containers:
+      - name: registry
+        image: registry:2
+#        command: [ "/bin/sh" ]
+#        args: [ "-c", "registry serve /etc/docker/registry/config.yml || (cat /etc/docker/registry/config.yml; false)" ]
+        ports:
+        - name: docker
+          containerPort: 5000
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: images
+          mountPath: /var/lib/registry
+        #- name: registry-conf
+        #  mountPath: /etc/docker/registry
+        - name: registry-auth-secret
+          mountPath: /root/certs
+
+#        - name: tls
+#          mountPath: /certs
+#        - name: auth
+#          mountPath: /auth
+        env:
+        # see https://docs.docker.com/registry/configuration/
+        - name: REGISTRY_HTTP_ADDR
+          value: "0.0.0.0:5000"
+        - name: REGISTRY_HTTP_HOST
+          value: "https://$(COMMON_NAME)"
+        - name: REGISTRY_HTTP_RELATIVEURLS # required when behind proxy
+          value: "true"
+        - name: REGISTRY_STORAGE_DELETE_ENABLED
+          value: "true"
+        - name: REGISTRY_AUTH
+          value: "token"
+          # ATTENTION: Don't name cesanta/docker_auth service 'registry-auth'
+          # because the registry looks for such an (enterprise?) service at start up.
+          # When it finds docker_auth instead it terminates with a confusing error message:
+          #   error: configuration error: error parsing /etc/docker/registry/config.yml: yaml: unmarshal errors: 
+          #          line 1: cannot unmarshal !!str `tcp://1...` into configuration.Parameters
+        - name: REGISTRY_AUTH_TOKEN_REALM
+          value: "https://$(COMMON_NAME)/auth/token"
+        - name: REGISTRY_AUTH_TOKEN_AUTOREDIRECT
+          value: "true" # Enforces host/protocol relative path /auth/token
+        - name: REGISTRY_AUTH_TOKEN_ISSUER
+          value: "Docker Registry Auth Service"
+        - name: REGISTRY_AUTH_TOKEN_SERVICE
+          value: "Docker Registry"
+        - name: REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE
+          value: "/root/certs/ca.crt"
+
+#        - name: REGISTRY_AUTH_HTPASSWD_REALM
+#          value: "Registry Realm"
+#        - name: REGISTRY_AUTH_HTPASSWD_PATH
+#          value: /auth/htpasswd
+#        - name: REGISTRY_HTTP_TLS_CERTIFICATE
+#          value: /certs/tls.crt
+#        - name: REGISTRY_HTTP_TLS_KEY
+#          value: /certs/tls.key
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 3
+          periodSeconds: 3
+      - name: nginx
+        image: nginx:1.17-alpine
+        ports:
+        - name: https
+          containerPort: 443
+        - name: http
+          containerPort: 80
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: nginx-conf
+          mountPath: /etc/nginx
+        - name: tls
+          mountPath: /etc/nginx/tls
+        - name: auth
+          mountPath: /etc/nginx/auth
+      volumes:
+      - name: images
+        persistentVolumeClaim:
+          claimName: registry-pvc
+          readOnly: false
+      - name: nginx-conf
+        configMap:
+          name: registry-nginx-conf
+      - name: tls
+        secret:
+          secretName: $(CERT_SECRET_NAME)
+      - name: auth
+        secret:
+          secretName: $(DEPLOYMENT_NAME)-htpasswd
+      - name: registry-auth-secret
+        secret:
+          secretName: registry-auth-token-ca
+      #- name: registry-conf
+      #  configMap:
+      #    name: registry-conf

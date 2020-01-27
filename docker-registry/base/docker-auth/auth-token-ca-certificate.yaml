@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: registry-auth-token-ca-issuer
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: registry-auth-token-ca
+spec:
+  secretName: registry-auth-token-ca
+  duration: 43800h # 5y
+  issuerRef:
+    name: registry-auth-token-ca-issuer
+    kind: Issuer
+  commonName: auth.registry
+  isCA: true
