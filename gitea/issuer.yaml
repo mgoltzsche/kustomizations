@@ -1,0 +1,27 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: gitea-selfsigning-issuer
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: gitea-tls-ca
+spec:
+  secretName: gitea-tls-ca
+  duration: 43800h # 5y
+  issuerRef:
+    name: gitea-selfsigning-issuer
+    kind: Issuer
+  commonName: "ca.cert.gitea.cluster"
+  isCA: true
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: gitea-tls-issuer
+spec:
+  ca:
+    secretName: gitea-tls-ca

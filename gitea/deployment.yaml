@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitea-deployment
+  labels:
+    app: gitea
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitea
+  template:
+    metadata:
+      labels:
+        app: gitea
+    spec:
+      containers:
+      - name: gitea
+        image: gitea/gitea:1.12.2
+        ports:
+        - containerPort: 3000
+          name: gitea
+        - containerPort: 22
+          name: git-ssh
+        # see https://docs.gitea.io/en-us/install-with-docker/#environments-variables
+        env:
+        - name: PROTOCOL
+          value: "https"
+        - name: DOMAIN
+          value: "gitea.example.org" # {"$kpt-set":"hostname"}
+        - name: RUN_MODE
+          value: "prod"
+        - name: INSTALL_LOCK
+          value: "true"
+        - name: SECRET_KEY
+          value: "TODO"
+        - name: DISABLE_REGISTRATION
+          value: "true"
+        - name: REQUIRE_SIGNIN_VIEW
+          value: "false"
+        - name: DB_TYPE
+          value: sqlite3
+        readinessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - mountPath: /data
+          name: git-data
+      volumes:
+      - name: git-data
+        emptyDir: {}

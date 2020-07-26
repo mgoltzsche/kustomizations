@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: gitea
+  annotations:
+    cert-manager.io/issuer: gitea-tls-issuer
+spec:
+  rules:
+  - host: "gitea.example.org" # {"$kpt-set":"hostname"}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: gitea
+          servicePort: 3000
+  tls:
+  - hosts:
+    - "gitea.example.org" # {"$kpt-set":"hostname"}
+    secretName: gitea-tls

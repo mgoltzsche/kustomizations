@@ -1,0 +1,14 @@
+apiVersion: kpt.dev/v1alpha1
+kind: Kptfile
+metadata:
+  name: gitea
+packageMetadata:
+  shortDescription: Gitea
+openAPI:
+  definitions:
+    io.k8s.cli.setters.hostname:
+      x-k8s-cli:
+        setter:
+          name: hostname
+          value: gitea.example.org
+          isSet: true
